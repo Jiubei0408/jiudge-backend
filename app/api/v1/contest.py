@@ -15,7 +15,7 @@ from app.libs.tools import get_file_response
 api = RedPrint('contest')
 
 
-@api.route('/<int:id_>/register')
+@api.route('/<int:id_>/register', methods=['POST'])
 @login_required
 def register_contest(id_):
     contest = Contest.get_by_id(id_)
@@ -28,12 +28,13 @@ def register_contest(id_):
     return Success('注册完成')
 
 
-@api.route('/<int:id_>')
-def get_contest_detail_api(id_):
-    contest = Contest.get_by_id(id_)
-    if contest is None:
-        return NotFound(msg='找不到该比赛')
-    return Success(data=contest)
+@api.route('s')
+def get_contests_detail_api():
+    contests = Contest.search_all(ready=True)['data']
+    for contest in contests:
+        contest.registered = contest.is_registered(current_user)
+        contest.show('registered')
+    return Success(data=contests, dataname='contests')
 
 
 @api.route('/<int:id_>/problems')
@@ -51,7 +52,7 @@ def get_contest_problems(id_):
     if not contest.is_registered(current_user):
         return AuthFailed(msg='你没有注册这场比赛')
     contest.hide_secret()
-    return Success(contest.problems)
+    return Success(data=contest.problems)
 
 
 @api.route('/<int:id_>/scoreboard')
@@ -120,7 +121,7 @@ def get_problem_text_file_api(cid, pid):
     contest = Contest.get_by_id(cid)
     if contest is None:
         return NotFound(f'Contest {cid} not found')
-    if not contest.is_admin() and contest.state == ContestState.BEFORE_START:
+    if not contest.is_admin(current_user) and contest.state == ContestState.BEFORE_START:
         return Forbidden('比赛还未开始')
     pcrel = ProblemContestRel.get_problem_by_id_in_contest(cid, pid)
     if pcrel is None:
@@ -168,7 +169,7 @@ def get_status_api(cid):
             submission.show_secret()
         else:
             submission.hide_secret()
-    return Success(data=submissions)
+    return Success(data=submissions, dataname='submissions')
 
 
 @api.route('/<int:id_>', methods=['DELETE'])

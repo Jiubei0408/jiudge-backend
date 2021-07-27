@@ -9,15 +9,15 @@ class APIException(HTTPException):
     data = None
 
     def __init__(self, msg=None, code=None, error_code=None,
-                 data=None):
+                 data=None, dataname='data'):
         if code:
             self.code = code
         if error_code:
             self.error_code = error_code
         if msg:
             self.msg = msg
-        if data:
-            self.data = data
+        self.data = data
+        self.dataname = dataname
         super(APIException, self).__init__(msg, None)
 
     def get_body(self, environ=None, scope=None):
@@ -26,8 +26,8 @@ class APIException(HTTPException):
             'code': self.error_code,
             'request': request.method + ' ' + self.get_url_no_param()
         }
-        if self.data:
-            body['data'] = self.data
+        if self.data is not None:
+            body[self.dataname] = self.data
         text = json.dumps(body)
         return text
 

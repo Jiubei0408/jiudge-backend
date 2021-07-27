@@ -48,6 +48,8 @@ class Contest(Base):
         return UserContestRel.get_users_by_contest_id(self.id)
 
     def is_registered(self, user):
+        if user.is_anonymous:
+            return False
         from app.models.relationship.user_contest import UserContestRel
         return UserContestRel.search(username=user.username, contest_id=self.id)['meta']['count'] > 0
 
