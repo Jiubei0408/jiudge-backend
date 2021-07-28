@@ -56,7 +56,6 @@ def get_contest_problems(id_):
 
 
 @api.route('/<int:id_>/scoreboard')
-@login_required
 def get_scoreboard_api(id_):
     # 暂时只能看到实验室的人，明天再说
     contest = Contest.get_by_id(id_)
@@ -163,7 +162,7 @@ def get_status_api(cid):
     admin = contest.is_admin(current_user)
     if not admin:
         query['username'] = current_user.username
-    submissions = Submission.search(**query, page_size=-1)['data']
+    submissions = Submission.search_all(**query, order={'submit_time': 'desc'})['data']
     for submission in submissions:
         if admin:
             submission.show_secret()
