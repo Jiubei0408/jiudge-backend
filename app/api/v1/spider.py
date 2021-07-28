@@ -1,7 +1,7 @@
 import base64
 
 from app.libs.red_print import RedPrint
-from app.validators.spider import SpiderBaseForm
+from app.validators.spider import SpiderBaseForm, SpiderFailedForm
 from app.models.quest import Quest
 from app.models.problem import Problem
 from app.models.relationship.problem_contest import ProblemContestRel
@@ -14,7 +14,7 @@ api = RedPrint('spider')
 
 @api.route('/failed', methods=['POST'])
 def failed_api():
-    form = SpiderBaseForm().validate_for_api().data_
+    form = SpiderFailedForm().validate_for_api().data_
     data = form['data']
     Quest.get_by_id(form['quest_id']).modify(status=QuestStatus.FAILED, message=data['message'])
     return 'ok'
