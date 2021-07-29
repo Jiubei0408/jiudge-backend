@@ -44,7 +44,8 @@ def get_scoreboard_cell(user, problem, contest):
         'tried': 0,
         'solved': False,
         'solve_time': 0,
-        'penalty': 0
+        'penalty': 0,
+        'first_blood': False
     }
     first_solve = Submission.search(
         username=user.username,
@@ -64,6 +65,7 @@ def get_scoreboard_cell(user, problem, contest):
             Submission.submit_time <= solve_time,
             Submission.result.not_in(UnRatedJudgeResults)
         ).count()
+        data['penalty'] = (data['tried'] - 1) * 20 + data['solve_time']
     else:
         data['tried'] = db.session.query(Submission).filter(
             Submission.username == user.username,
@@ -71,7 +73,6 @@ def get_scoreboard_cell(user, problem, contest):
             Submission.contest_id == contest.id,
             Submission.result.not_in(UnRatedJudgeResults)
         ).count()
-    data['penalty'] = (data['tried'] - 1) * 20 + data['solve_time']
     return data
 
 
@@ -99,6 +100,7 @@ def get_scoreboard(contest):
         'scoreboard': []
     }
     users = UserContestRel.get_users_by_contest_id(contest.id)
+    first_blood = {}
     for user in users:
         row = {
             'solved': 0,
@@ -107,12 +109,17 @@ def get_scoreboard(contest):
         }
         for problem in problems:
             problem.hide_secret()
+            pid = problem.problem_id
             cell = get_scoreboard_cell(user, problem, contest)
-            row[problem.problem_id] = cell
+            row[pid] = cell
             if cell['solved']:
+                if pid not in first_blood or first_blood[pid]['solve_time'] > cell['solve_time']:
+                    first_blood[pid] = cell
                 row['solved'] += 1
                 row['penalty'] += cell['penalty']
         data['scoreboard'].append(row)
+    for i, j in first_blood.items():
+        j['first_blood'] = True
     data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
     now = datetime.datetime.now()
     data['update_time'] = now
