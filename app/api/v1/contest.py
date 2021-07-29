@@ -28,7 +28,7 @@ def register_contest(id_):
     return Success('注册完成')
 
 
-@api.route('s')
+@api.route('s', methods=['GET'])
 def get_contests_detail_api():
     contests = Contest.search_all(ready=True)['data']
     for contest in contests:
@@ -37,7 +37,7 @@ def get_contests_detail_api():
     return Success(data=contests, dataname='contests')
 
 
-@api.route('/<int:id_>/problems')
+@api.route('/<int:id_>/problems', methods=['GET'])
 def get_contest_problems(id_):
     contest = Contest.get_by_id(id_)
     if contest is None:
@@ -55,36 +55,25 @@ def get_contest_problems(id_):
     return Success(data=contest.problems)
 
 
-@api.route('/<int:id_>/scoreboard')
+@api.route('/<int:id_>/scoreboard', methods=['GET'])
 def get_scoreboard_api(id_):
-    # 暂时只能看到实验室的人，明天再说
     contest = Contest.get_by_id(id_)
     if contest is None:
         return NotFound(msg='找不到该比赛')
-    from app.services.contest import get_scoreboard_cell
-    from app.models.relationship.user_contest import UserContestRel
-    problems = ProblemContestRel.get_problems_by_contest_id(id_)
-    data = {
-        'problems': problems,
-        'scoreboard': []
-    }
-    users = UserContestRel.get_users_by_contest_id(id_)
-    for user in users:
-        row = {
-            'solved': 0,
-            'penalty': 0,
-            'user': user
-        }
-        for problem in problems:
-            problem.hide_secret()
-            cell = get_scoreboard_cell(user, problem, contest)
-            row[problem.problem_id] = cell
-            if cell['solved']:
-                row['solved'] += 1
-                row['penalty'] += cell['penalty']
-        data['scoreboard'].append(row)
-    data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
-    return data
+    from app.services.contest import get_scoreboard
+    return get_scoreboard(contest)
+
+
+@api.route('/<int:id_>/scoreboard', methods=['DELETE'])
+@admin_only
+def delete_scoreboard_cache_api(id_):
+    contest = Contest.get_by_id(id_)
+    if contest is None:
+        return NotFound(msg='找不到该比赛')
+    from app.models.scoreboard import Scoreboard
+    board = Scoreboard.get_by_contest_id(contest.id)
+    board.modify(scoreboard_json='')
+    return Success()
 
 
 @api.route('/create', methods=['POST'])
