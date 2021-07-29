@@ -30,8 +30,18 @@ def register_contest(id_):
     return Success('注册完成')
 
 
+@api.route('/<int:id_>', methods=['GET'])
+def get_contest_api(id_):
+    contest = Contest.get_by_id(id_)
+    if contest is None:
+        return NotFound(msg='找不到该比赛')
+    contest.registered = contest.is_registered(current_user)
+    contest.show('registered')
+    return Success(data=contest)
+
+
 @api.route('s', methods=['GET'])
-def get_contests_detail_api():
+def get_contests_api():
     contests = Contest.search_all(ready=True)['data']
     for contest in contests:
         contest.registered = contest.is_registered(current_user)
