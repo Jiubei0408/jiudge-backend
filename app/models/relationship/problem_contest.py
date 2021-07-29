@@ -21,7 +21,7 @@ class ProblemContestRel(Base):
         return p
 
     @classmethod
-    def get_problem_by_id_in_contest(cls, contest_id, problem_id):
+    def get_by_problem_id_in_contest(cls, contest_id, problem_id):
         r = cls.search(contest_id=contest_id, problem_id_in_contest=problem_id)['data']
         if r:
             return r[0]

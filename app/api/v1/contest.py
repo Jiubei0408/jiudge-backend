@@ -6,7 +6,7 @@ from app.models.relationship.problem_contest import ProblemContestRel
 from app.libs.enumerate import ContestState
 from app.libs.auth import admin_only
 from app.validators.contest import *
-from app.validators.problem import SubmitCodeForm
+from app.validators.problem import *
 from app.services.problem import *
 from app.services.contest import *
 from app.models.submission import Submission
@@ -23,6 +23,8 @@ def register_contest(id_):
         return NotFound(msg='找不到该比赛')
     if contest.is_registered(current_user):
         return Forbidden(msg='你已经注册过了')
+    if contest.state == ContestState.ENDED:
+        return Forbidden(msg='比赛已结束')
     from app.models.relationship.user_contest import UserContestRel
     UserContestRel.create(username=current_user.username, contest_id=id_)
     return Success('注册完成')
@@ -111,7 +113,7 @@ def get_problem_text_file_api(cid, pid):
         return NotFound(f'Contest {cid} not found')
     if not contest.is_admin(current_user) and contest.state == ContestState.BEFORE_START:
         return Forbidden('比赛还未开始')
-    pcrel = ProblemContestRel.get_problem_by_id_in_contest(cid, pid)
+    pcrel = ProblemContestRel.get_by_problem_id_in_contest(cid, pid)
     if pcrel is None:
         return NotFound(f'Contest {cid} has no problem called {pid}')
     loc = pcrel.problem.problem_text_file
@@ -128,7 +130,7 @@ def submit_code_api(cid, pid):
         return NotFound(f'Contest {cid} not found')
     if not contest.is_admin(current_user) and contest.state != ContestState.RUNNING:
         return Forbidden('比赛不在进行中')
-    pcrel = ProblemContestRel.get_problem_by_id_in_contest(cid, pid)
+    pcrel = ProblemContestRel.get_by_problem_id_in_contest(cid, pid)
     if pcrel is None:
         return NotFound(f'Contest {cid} has no problem called {pid}')
     form = SubmitCodeForm().validate_for_api().data_
@@ -142,22 +144,29 @@ def submit_code_api(cid, pid):
 @api.route('/<int:cid>/status', methods=['GET'])
 @login_required
 def get_status_api(cid):
-    query = {
-        'contest_id': cid
-    }
     contest = Contest.get_by_id(cid)
     if contest is None:
         return NotFound(f'Contest {cid} not found')
+    form = SearchSubmissionForm().validate_for_api().data_
+    query = {
+        'contest_id': cid,
+        **{k: v for k, v in form.items() if v is not None and v != ''}
+    }
+    if 'problem_id' in query:
+        from app.models.relationship.problem_contest import ProblemContestRel
+        pcrel = ProblemContestRel.get_by_problem_id_in_contest(cid, query['problem_id'])
+        if pcrel is not None:
+            query['problem_id'] = pcrel.problem_id
     admin = contest.is_admin(current_user)
     if not admin:
         query['username'] = current_user.username
-    submissions = Submission.search_all(**query, order={'submit_time': 'desc'})['data']
-    for submission in submissions:
+    search_result = Submission.search(**query, order={'id': 'desc'}, enable_fuzzy={'username'})
+    for submission in search_result['data']:
         if admin:
             submission.show_secret()
         else:
             submission.hide_secret()
-    return Success(data=submissions, dataname='submissions')
+    return Success(data=search_result)
 
 
 @api.route('/<int:id_>', methods=['DELETE'])

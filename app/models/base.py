@@ -80,13 +80,17 @@ class Base(db.Model):
             db.session.delete(self)
 
     @classmethod
-    def search(cls, **kwargs):
+    def search(cls, enable_fuzzy=None, **kwargs):
+        if enable_fuzzy is None:
+            enable_fuzzy = set()
         res = cls.query
         for key, value in kwargs.items():
             if value is not None:
                 if hasattr(cls, key):
-                    if isinstance(value, str):
-                        res = res.filter(getattr(cls, key).like(value))
+                    if isinstance(value, str) and key in enable_fuzzy:
+                        val = value.replace('\\', '\\\\')
+                        val = val.replace('%', '\\%')
+                        res = res.filter(getattr(cls, key).like('%' + val + '%'))
                     else:
                         res = res.filter(getattr(cls, key) == value)
         if kwargs.get('order'):
