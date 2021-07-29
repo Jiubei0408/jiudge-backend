@@ -152,7 +152,6 @@ def submit_code_api(cid, pid):
 
 
 @api.route('/<int:cid>/status', methods=['GET'])
-@login_required
 def get_status_api(cid):
     contest = Contest.get_by_id(cid)
     if contest is None:
@@ -168,7 +167,13 @@ def get_status_api(cid):
         if pcrel is not None:
             query['problem_id'] = pcrel.problem_id
     admin = contest.is_admin(current_user)
-    if not admin:
+    if not admin and contest.state == ContestState.BEFORE_START:
+        return AuthFailed(msg='比赛还未开始')
+    if not admin and contest.state == ContestState.RUNNING:
+        if current_user.is_anonymous:
+            return AuthFailed()
+        if not contest.is_registered():
+            return AuthFailed(msg='你没有注册这场比赛')
         query['username'] = current_user.username
     search_result = Submission.search(**query, order={'id': 'desc'}, enable_fuzzy={'username'})
     for submission in search_result['data']:
