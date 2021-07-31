@@ -172,7 +172,7 @@ def get_status_api(cid):
     if not admin and contest.state == ContestState.RUNNING:
         if current_user.is_anonymous:
             return AuthFailed()
-        if not contest.is_registered():
+        if not contest.is_registered(current_user):
             return AuthFailed(msg='你没有注册这场比赛')
         query['username'] = current_user.username
     search_result = Submission.search(**query, order={'id': 'desc'}, enable_fuzzy={'username'})
