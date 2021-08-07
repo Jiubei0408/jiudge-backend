@@ -121,6 +121,17 @@ def get_scoreboard(contest):
     for i, j in first_blood.items():
         j['first_blood'] = True
     data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
+    rank = 0
+    cnt = 0
+    penalty = 0
+    solved = 0
+    for row in data['scoreboard']:
+        cnt += 1
+        if penalty != row['penalty'] or solved != row['solved']:
+            rank = cnt
+            penalty = row['penalty']
+            solved = row['solved']
+        row['rank'] = rank
     now = datetime.datetime.now()
     data['update_time'] = now
     board.modify(scoreboard_json=json.dumps(data), update_time=now)
