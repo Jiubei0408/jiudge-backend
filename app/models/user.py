@@ -14,7 +14,7 @@ class User(UserMixin, Base):
     username = Column(String(100), primary_key=True)
     nickname = Column(String(100), nullable=False)
     password = Column(String(100), nullable=False)
-    permission = Column(Enum(UserPermission), nullable=False, default=0)
+    permission = Column(Enum(UserPermission), nullable=False, default=UserPermission.NORMAL)
 
     @property
     def id(self):
