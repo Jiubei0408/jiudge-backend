@@ -44,7 +44,7 @@ class Clarification(Base):
 
     @classmethod
     def search_by_contest_id(cls, contest_id, page=1, page_size=20):
-        res = db.session.query(Clarification)
+        res = db.session.query(Clarification).filter(Clarification.contest_id == contest_id)
         from flask_login import current_user
         if current_user.is_anonymous:
             res = res.filter(Clarification._to.is_(None))
