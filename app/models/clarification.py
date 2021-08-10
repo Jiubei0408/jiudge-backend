@@ -50,7 +50,7 @@ class Clarification(Base):
             res = res.filter(Clarification._to.is_(None))
         elif not Contest.get_by_id(contest_id).is_admin(current_user):
             res = res.filter(
-                Clarification.to == current_user.username
+                Clarification._to == current_user.username
                 or Clarification._who == current_user.username
                 or Clarification._to.is_(None)
             )
