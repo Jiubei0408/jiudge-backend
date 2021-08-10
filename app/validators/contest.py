@@ -5,11 +5,16 @@ from app.validators.base import BaseForm, NotRequiredDateTimeRange
 from app.libs.enumerate import ContestType
 
 
+class ContestRegisterForm(BaseForm):
+    password = StringField()
+
+
 class CreateRemoteContestForm(NotRequiredDateTimeRange):
     oj_id = IntegerField(validators=[DataRequired(message='oj_id cannot be empty')])
     remote_contest_id = StringField(validators=[DataRequired(message='remote_contest_id cannot be empty')])
     contest_name = StringField(validators=[DataRequired(message='Contest name cannot be empty')])
     contest_type = StringField()
+    password = StringField()
 
     def validate_for_contest_type(self, value):
         if self.contest_type.data not in ContestType.__members__:

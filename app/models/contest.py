@@ -6,7 +6,7 @@ from app.libs.enumerate import ContestType, ContestState
 class Contest(Base):
     __tablename__ = 'contest'
 
-    fields = ['id', 'contest_name', 'contest_type', 'start_time', 'end_time', 'state', 'ready']
+    fields = ['id', 'contest_name', 'contest_type', 'start_time', 'end_time', 'state', 'ready', 'require_password']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     contest_name = Column(String(200), nullable=False)
@@ -14,6 +14,7 @@ class Contest(Base):
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime)
     ready = Column(Boolean, nullable=False, default=False)
+    password = Column(String(100))
 
     @classmethod
     def create(cls, **kwargs):
@@ -31,6 +32,10 @@ class Contest(Base):
 
     def hide_secret(self):
         self.secret = True
+
+    @property
+    def require_password(self):
+        return self.password is not None
 
     @property
     def state(self):
@@ -89,8 +94,12 @@ class Contest(Base):
         from app.models.relationship.problem_contest import ProblemContestRel
         from app.models.relationship.user_contest import UserContestRel
         from app.models.remote_contest import RemoteContest
-        Scoreboard.get_by_contest_id(self.id).delete()
+        scoreboard = Scoreboard.get_by_contest_id(self.id)
+        if scoreboard is not None:
+            scoreboard.delete()
         ProblemContestRel.delete_contest(self.id)
         UserContestRel.delete_contest(self.id)
-        RemoteContest.get_by_contest_id(self.id).delete()
+        remote_contest = RemoteContest.get_by_contest_id(self.id)
+        if remote_contest is not None:
+            remote_contest.delete()
         super(Contest, self).delete()

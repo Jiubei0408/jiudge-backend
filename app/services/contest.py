@@ -5,11 +5,11 @@ from app.libs.quest_queue import *
 from app.libs.scheduler import *
 
 
-def create_remote_contest(contest_name, contest_type, start_time, end_time, oj, remote_contest_id):
+def create_remote_contest(contest_name, contest_type, start_time, end_time, oj, remote_contest_id, password):
     from app.models.contest import Contest
     from app.models.remote_contest import RemoteContest
     contest = Contest.create(contest_name=contest_name, contest_type=contest_type, start_time=start_time,
-                             end_time=end_time)
+                             end_time=end_time, password=password)
     RemoteContest.create(oj_id=oj.id, remote_contest_id=remote_contest_id, contest_id=contest.id)
     schedule_datetime(task_crawl_contest_info, start_time, (contest.id, oj.id, oj.name, remote_contest_id))
 

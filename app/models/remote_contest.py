@@ -33,6 +33,7 @@ class RemoteContest(Base):
     def delete(self):
         from app.models.remote_scoreboard import RemoteScoreboard
         RemoteScoreboard.get_by_remote_contest_id(self.id).delete()
+        super(RemoteContest, self).delete()
 
     @classmethod
     def get_by_contest_id(cls, contest_id):

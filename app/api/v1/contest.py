@@ -25,6 +25,9 @@ def register_contest(id_):
         return Forbidden(msg='你已经注册过了')
     if contest.state == ContestState.ENDED:
         return Forbidden(msg='比赛已结束')
+    form = ContestRegisterForm().validate_for_api().data_
+    if contest.password is not None and form['password'] != contest.password:
+        return Forbidden(msg='密码错误')
     from app.models.relationship.user_contest import UserContestRel
     UserContestRel.create(username=current_user.username, contest_id=id_)
     return Success('注册完成')
@@ -104,11 +107,13 @@ def create_remote_contest_api():
         return NotFound(msg='没有找到这个oj')
     if oj.status != 1:
         return Forbidden(msg=f'暂不支持{oj.name}')
+    password = None if form['password'] == '' else form['password']
     create_remote_contest(
         contest_name=form['contest_name'],
         contest_type=form['contest_type'],
         start_time=form['start_time'],
         end_time=form['end_time'],
+        password=password,
         oj=oj,
         remote_contest_id=form['remote_contest_id']
     )
@@ -187,4 +192,8 @@ def get_status_api(cid):
 @api.route('/<int:id_>', methods=['DELETE'])
 @admin_only
 def delete_contest_api(id_):
-    Contest.get_by_id(id_).delete()
+    contest = Contest.get_by_id(id_)
+    if contest is None:
+        return NotFound(msg='找不到该比赛')
+    contest.delete()
+    return DeleteSuccess(msg='删除成功')
