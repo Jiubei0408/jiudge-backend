@@ -116,5 +116,5 @@ dmypy.json
 # jetbrains object settings
 .idea/
 
-config/secure.py
+app/config/secure.py
 files/
