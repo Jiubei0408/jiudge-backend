@@ -12,6 +12,7 @@ from app.services.problem import *
 from app.services.contest import *
 from app.models.submission import Submission
 from app.libs.tools import get_file_response
+from app.models.clarification import Clarification
 
 api = RedPrint('contest')
 
@@ -189,6 +190,23 @@ def get_status_api(cid):
         else:
             submission.hide_secret()
     return Success(data=search_result)
+
+
+@api.route('/<int:id_>/clarifications')
+def get_clarifications_api(id_):
+    form = SearchForm().validate_for_api().data_
+    if form['page'] is None:
+        form['page'] = 1
+    if form['page_size'] is None:
+        form['page_size'] = 20
+    contest = Contest.get_by_id(id_)
+    if contest is None:
+        return NotFound(msg='找不到该比赛')
+    return SearchSuccess(data=Clarification.search_by_contest_id(
+        contest_id=id_,
+        page=form['page'],
+        page_size=form['page_size']
+    ))
 
 
 @api.route('/<int:id_>', methods=['DELETE'])
