@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, func, desc
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, or_, desc
 
 from app.models.base import Base, db
 
@@ -39,7 +39,7 @@ class Clarification(Base):
     def problem_id_in_contest(self):
         if self.problem_id is None:
             return None
-        return ProblemContestRel.\
+        return ProblemContestRel. \
             get_by_problem_id_and_contest_id(self.contest_id, self.problem_id).problem_id_in_contest
 
     @classmethod
@@ -50,9 +50,11 @@ class Clarification(Base):
             res = res.filter(Clarification._to.is_(None))
         elif not Contest.get_by_id(contest_id).is_admin(current_user):
             res = res.filter(
-                Clarification._to == current_user.username
-                or Clarification._who == current_user.username
-                or Clarification._to.is_(None)
+                or_(
+                    Clarification._to == current_user.username,
+                    Clarification._who == current_user.username,
+                    Clarification._to.is_(None)
+                )
             )
         res = res.order_by(desc(Clarification.id))
         data = {
