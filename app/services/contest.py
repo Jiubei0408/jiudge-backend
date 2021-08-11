@@ -57,7 +57,7 @@ def get_scoreboard_cell(user, problem, contest):
     if first_solve:
         data['solved'] = True
         solve_time = first_solve[0].submit_time
-        data['solve_time'] = math.floor((solve_time - contest.start_time).seconds / 60.0)
+        data['solve_time'] = math.floor((solve_time - contest.start_time).total_seconds() / 60.0)
         data['tried'] = db.session.query(Submission).filter(
             Submission.username == user.username,
             Submission.problem_id == problem.id,
@@ -83,7 +83,7 @@ def get_scoreboard(contest):
     from app.libs.enumerate import ContestState
     board = Scoreboard.get_by_contest_id(contest.id)
     last_refresh_time = board.update_time
-    seconds_passed = (datetime.datetime.now() - last_refresh_time).seconds
+    seconds_passed = (datetime.datetime.now() - last_refresh_time).total_seconds()
     if (
             seconds_passed < ScoreboardCacheRefreshSeconds.CONTEST or
             (
