@@ -11,7 +11,7 @@ from app.models.quest import Quest
 
 class Submission(Base):
     __tablename__ = 'submission'
-    fields = ['id', 'user', 'problem', 'result', 'view_result', 'code', 'lang', 'time_used', 'memory_used', 'compile_info', 'submit_time']
+    fields = ['id', 'user', 'problem', 'remote_result', 'view_result', 'code', 'lang', 'time_used', 'memory_used', 'compile_info', 'submit_time']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(100), ForeignKey(User.username))
