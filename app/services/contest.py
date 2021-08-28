@@ -36,6 +36,78 @@ def task_crawl_remote_scoreboard(scoreboard_id, oj_name, remote_contest_id):
         send_crawl_remote_scoreboard(scoreboard_id, oj_name, remote_contest_id)
 
 
+def get_problem_list(contest_id, username, show_secret):
+    from app.models.base import db
+    from app.models.problem import Problem
+    from app.models.relationship.problem_contest import ProblemContestRel
+    from sqlalchemy import exists, and_, func
+    from app.models.relationship.user_contest import UserContestRel
+    from app.models.submission import Submission
+    from app.libs.enumerate import JudgeResult
+    from app.config.settings import UnRatedJudgeResults
+    q_solved = exists().where(
+        and_(
+            Submission.username == username,
+            Submission.contest_id == contest_id,
+            Submission.result == JudgeResult.AC,
+            Submission.problem_id == Problem.id
+        )
+    )
+    q_tried = exists().where(
+        and_(
+            Submission.username == username,
+            Submission.contest_id == contest_id,
+            Submission.problem_id == Problem.id,
+            Submission.result.not_in(UnRatedJudgeResults)
+        )
+    )
+    q_solve_cnt = db.session.query(func.count()).filter(
+        Submission.contest_id == contest_id,
+        Submission.result == JudgeResult.AC,
+        Submission.problem_id == Problem.id,
+        exists().where(
+            and_(
+                Submission.username == UserContestRel.username,
+                Submission.contest_id == UserContestRel.contest_id
+            ))
+    ).scalar_subquery()
+    q_tried_cnt = db.session.query(func.count()).filter(
+        Submission.contest_id == contest_id,
+        Submission.result.not_in(UnRatedJudgeResults),
+        Submission.problem_id == Problem.id,
+        exists().where(
+            and_(
+                Submission.username == UserContestRel.username,
+                Submission.contest_id == UserContestRel.contest_id
+            ))
+    ).scalar_subquery()
+    problem_info_list = db.session.query(
+        Problem,
+        ProblemContestRel.problem_id_in_contest,
+        q_solved,
+        q_tried,
+        q_solve_cnt,
+        q_tried_cnt
+    ).filter(Problem.id == ProblemContestRel.problem_id). \
+        filter(ProblemContestRel.contest_id == contest_id). \
+        all()
+
+    def modify_problem(p, id_, solved, tried, solve_cnt, tried_cnt):
+        p.problem_id = id_
+        p.solved = solved
+        p.tried = tried
+        p.solve_cnt = solve_cnt
+        p.tried_cnt = tried_cnt
+        p.show('problem_id', 'solved', 'tried', 'solve_cnt', 'tried_cnt')
+        if show_secret:
+            p.show_secret()
+        else:
+            p.hide_secret()
+        return p
+
+    return [modify_problem(*info) for info in problem_info_list]
+
+
 def get_scoreboard_cell(user, problem, contest):
     from app.models.base import db
     from app.models.submission import Submission

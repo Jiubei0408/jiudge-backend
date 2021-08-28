@@ -57,20 +57,27 @@ def get_contests_api():
 
 @api.route('/<int:id_>/problems', methods=['GET'])
 def get_contest_problems(id_):
+    from app.services.contest import get_problem_list
     contest = Contest.get_by_id(id_)
     if contest is None:
         return NotFound(msg='找不到该比赛')
     if contest.is_admin(current_user) or contest.state == ContestState.ENDED:
-        contest.show_secret()
-        return Success(data=contest.problems)
+        return Success(data=get_problem_list(
+            contest_id=id_,
+            username=(current_user.username if not current_user.is_anonymous else None),
+            show_secret=True
+        ))
     if contest.state == ContestState.BEFORE_START:
         return AuthFailed(msg='比赛还未开始')
     if current_user.is_anonymous:
         return AuthFailed(msg='请先登录')
     if not contest.is_registered(current_user):
         return AuthFailed(msg='你没有注册这场比赛')
-    contest.hide_secret()
-    return Success(data=contest.problems)
+    return Success(data=get_problem_list(
+        contest_id=id_,
+        username=current_user.username,
+        show_secret=True
+    ))
 
 
 @api.route('/<int:id_>/scoreboard', methods=['GET'])
