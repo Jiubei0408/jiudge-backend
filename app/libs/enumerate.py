@@ -32,7 +32,7 @@ class JudgeResult(Enum):
     RE = auto()  # runtime error
     PE = auto()  # presentation error
     SE = auto()  # system error
-    SpiderError = auto() # spider error
+    SpiderError = auto()  # spider error
     UNKNOWN = auto()
 
 
@@ -43,8 +43,7 @@ class QuestStatus(Enum):
     FAILED = auto()
 
 
-class CodeLanguage(Enum):
-    C = auto()
-    CPP = auto()
-    JAVA = auto()
-    PYTHON3 = auto()
+class ContestRegisterType(Enum):
+    Participant = 0
+    Observer = 1
+    Starred = 2

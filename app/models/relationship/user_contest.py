@@ -1,8 +1,9 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 
 from app.models.base import Base, db
 from app.models.user import User
 from app.models.contest import Contest
+from app.libs.enumerate import ContestRegisterType
 
 
 class UserContestRel(Base):
@@ -11,11 +12,11 @@ class UserContestRel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(100), ForeignKey(User.username))
     contest_id = Column(Integer, ForeignKey(Contest.id))
+    type = Column(Enum(ContestRegisterType), default=ContestRegisterType.Participant)
 
     @staticmethod
-    def get_users_by_contest_id(contest_id):
-        return db.session.query(User). \
-            filter(User.username == UserContestRel.username). \
+    def get_by_contest_id(contest_id):
+        return db.session.query(UserContestRel). \
             filter(UserContestRel.contest_id == contest_id).all()
 
     @staticmethod
@@ -23,3 +24,7 @@ class UserContestRel(Base):
         db.session.query(UserContestRel). \
             filter(UserContestRel.contest_id == contest_id). \
             delete()
+
+    @property
+    def user(self):
+        return User.get_by_id(self.username)

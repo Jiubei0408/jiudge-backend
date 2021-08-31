@@ -166,23 +166,25 @@ def get_scoreboard(contest):
         return json.loads(board.scoreboard_json)
     from app.models.relationship.problem_contest import ProblemContestRel
     from app.models.relationship.user_contest import UserContestRel
+    from app.libs.enumerate import ContestRegisterType
     problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
     data = {
         'problems': problems,
         'scoreboard': []
     }
-    users = UserContestRel.get_users_by_contest_id(contest.id)
+    registered = UserContestRel.get_by_contest_id(contest.id)
     first_blood = {}
-    for user in users:
+    for rel in registered:
         row = {
             'solved': 0,
             'penalty': 0,
-            'user': user
+            'user': rel.user,
+            'register_type': rel.type
         }
         for problem in problems:
             problem.hide_secret()
             pid = problem.problem_id
-            cell = get_scoreboard_cell(user, problem, contest)
+            cell = get_scoreboard_cell(rel.user, problem, contest)
             row[pid] = cell
             if cell['solved']:
                 if pid not in first_blood or first_blood[pid]['solve_time'] > cell['solve_time']:
@@ -194,16 +196,17 @@ def get_scoreboard(contest):
         j['first_blood'] = True
     data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
     rank = 0
-    cnt = 0
+    cnt = 1
     penalty = 0
     solved = 0
     for row in data['scoreboard']:
-        cnt += 1
         if penalty != row['penalty'] or solved != row['solved']:
             rank = cnt
             penalty = row['penalty']
             solved = row['solved']
         row['rank'] = rank
+        if row['register_type'] != ContestRegisterType.Starred:
+            cnt += 1
     now = datetime.datetime.now()
     data['update_time'] = now
     board.modify(scoreboard_json=json.dumps(data), update_time=now)

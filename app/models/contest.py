@@ -47,11 +47,6 @@ class Contest(Base):
             return ContestState.ENDED
         return ContestState.RUNNING
 
-    @property
-    def users(self):
-        from app.models.relationship.user_contest import UserContestRel
-        return UserContestRel.get_users_by_contest_id(self.id)
-
     def is_registered(self, user):
         if user.is_anonymous:
             return False
