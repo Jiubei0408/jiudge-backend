@@ -36,9 +36,11 @@ class ProblemContestRel(Base):
 
     @staticmethod
     def get_problems_by_contest_id(contest_id):
+        from sqlalchemy import asc
         problem_info_list = db.session.query(Problem, ProblemContestRel.problem_id_in_contest). \
             filter(Problem.id == ProblemContestRel.problem_id). \
-            filter(ProblemContestRel.contest_id == contest_id).all()
+            filter(ProblemContestRel.contest_id == contest_id). \
+            order_by(asc(ProblemContestRel.problem_id_in_contest)).all()
 
         def change_problem_id(p, id_):
             p.problem_id = id_

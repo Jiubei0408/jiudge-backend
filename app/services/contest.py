@@ -40,7 +40,7 @@ def get_problem_list(contest_id, username, show_secret):
     from app.models.base import db
     from app.models.problem import Problem
     from app.models.relationship.problem_contest import ProblemContestRel
-    from sqlalchemy import exists, and_, func
+    from sqlalchemy import exists, and_, func, asc
     from app.models.relationship.user_contest import UserContestRel
     from app.models.submission import Submission
     from app.libs.enumerate import JudgeResult
@@ -89,8 +89,8 @@ def get_problem_list(contest_id, username, show_secret):
         q_solve_cnt,
         q_tried_cnt
     ).filter(Problem.id == ProblemContestRel.problem_id). \
-        filter(ProblemContestRel.contest_id == contest_id). \
-        all()
+        filter(ProblemContestRel.contest_id == contest_id).\
+        order_by(asc(ProblemContestRel.problem_id_in_contest)).all()
 
     def modify_problem(p, id_, solved, tried, solve_cnt, tried_cnt):
         p.problem_id = id_
