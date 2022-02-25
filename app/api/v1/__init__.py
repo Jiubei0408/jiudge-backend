@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 
-from app.api.v1 import session, contest, oj, spider
+from app.api.v1 import session, contest, oj, spider, user
 
 
 def create_blueprint_v1():
@@ -11,4 +11,5 @@ def create_blueprint_v1():
     contest.api.register(bp_v1)
     oj.api.register(bp_v1)
     spider.api.register(bp_v1)
+    user.api.register(bp_v1)
     return bp_v1
