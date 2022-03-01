@@ -1,6 +1,6 @@
 from app.models.base import Base
 from sqlalchemy import Column, Integer, String, Enum, Text
-from app.libs.enumerate import QuestStatus
+from app.libs.enumerate import QuestStatus, QuestType
 
 
 class Quest(Base):
@@ -11,3 +11,5 @@ class Quest(Base):
     time_stamp = Column(Integer)
     status = Column(Enum(QuestStatus), default=QuestStatus.INQUEUE)
     message = Column(Text, default='')
+    type = Column(Enum(QuestType), nullable=False)
+    relation_data_id = Column(Integer)

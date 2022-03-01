@@ -87,9 +87,34 @@ def update_judge_result_api(sid):
         'compile_info': 'balabala'
     }
     """
-    data = SpiderBaseForm().validate_for_api().data_['data']
+    form = SpiderBaseForm().validate_for_api().data_
+    data = form['data']
     from app.models.submission import Submission
     submission = Submission.get_by_id(sid)
     submission.modify(**data)
-    submission.quest.modify(status=QuestStatus.FINISHED)
+    quest = Quest.get_by_id(form['quest_id'])
+    quest.modify(status=QuestStatus.FINISHED)
+    return 'ok'
+
+
+@api.route('/problem_info/<int:pid>', methods=['POST'])
+def update_problem_info(pid):
+    """
+    {
+        'problem_name': 'Great Sequence',
+        'remote_problem_url': 'https://codeforces.com/contest/1641/problem/A',
+        'problem_text': '<div></div>',
+        'time_limit': '1' 单位s,
+        'space_limit': '262144' 单位kb,
+        'allowed_lang': 'GNU G++14 6.4.0,GNU G++17 7.3.0,GNU G++17 9.2.0 (64 bit),Python 3.8.10,java 11.0.6' 逗号分隔
+    }
+    """
+    form = SpiderBaseForm().validate_for_api().data_
+    quest_id = form['quest_id']
+    data = form['data']
+    from app.models.problem import Problem
+    problem = Problem.get_by_id(pid)
+    problem.modify(**data)
+    quest = Quest.get_by_id(quest_id)
+    quest.modify(status=QuestStatus.FINISHED)
     return 'ok'

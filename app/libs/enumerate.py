@@ -36,6 +36,13 @@ class JudgeResult(Enum):
     UNKNOWN = auto()
 
 
+class QuestType(Enum):
+    CrawlRemoteContestMeta = auto()
+    CrawlRemoteScoreBoard = auto()
+    SubmitSolution = auto()
+    CrawlProblemInfo = auto()
+
+
 class QuestStatus(Enum):
     INQUEUE = auto()
     RUNNING = auto()

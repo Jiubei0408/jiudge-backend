@@ -25,7 +25,6 @@ class Submission(Base):
     compile_info = Column(Text, default='')
     submit_time = Column(DateTime)
     contest_id = Column(Integer, ForeignKey(Contest.id))
-    quest_id = Column(Integer, ForeignKey(Quest.id))
 
     @orm.reconstructor
     def __init__(self):
@@ -40,10 +39,6 @@ class Submission(Base):
     @property
     def view_result(self):
         return self.result.name
-
-    @property
-    def quest(self):
-        return Quest.get_by_id(self.quest_id)
 
     @property
     def contest(self):
