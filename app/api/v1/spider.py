@@ -6,7 +6,7 @@ from app.models.quest import Quest
 from app.models.problem import Problem
 from app.models.relationship.problem_contest import ProblemContestRel
 from app.models.contest import Contest
-from app.libs.enumerate import QuestStatus
+from app.libs.enumerate import QuestStatus, JudgeResult
 from app.libs.tools import save_to_file
 
 api = RedPrint('spider')
@@ -92,8 +92,10 @@ def update_judge_result_api(sid):
     from app.models.submission import Submission
     submission = Submission.get_by_id(sid)
     submission.modify(**data)
-    quest = Quest.get_by_id(form['quest_id'])
-    quest.modify(status=QuestStatus.FINISHED)
+    result = data['result']
+    if result.upper() not in ['RUNNING', 'PENDING']:
+        quest = Quest.get_by_id(form['quest_id'])
+        quest.modify(status=QuestStatus.FINISHED)
     return 'ok'
 
 
