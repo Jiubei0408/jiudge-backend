@@ -12,11 +12,11 @@ from app.libs.tools import save_to_file
 api = RedPrint('spider')
 
 
-@api.route('/failed', methods=['POST'])
+@api.route('/update_status', methods=['POST'])
 def failed_api():
     form = SpiderFailedForm().validate_for_api().data_
     data = form['data']
-    Quest.get_by_id(form['quest_id']).modify(status=QuestStatus.FAILED, message=data['message'])
+    Quest.get_by_id(form['quest_id']).modify(status=data['status'], message=data['message'])
     return 'ok'
 
 
