@@ -127,7 +127,7 @@ def get_problem_text_file_api(cid, pid):
     if not contest.is_admin(current_user):
         if contest.state == ContestState.BEFORE_START:
             return Forbidden('比赛还未开始')
-        elif contest.is_registered(current_user):
+        elif not contest.is_registered(current_user):
             return Forbidden('你没有注册这场比赛')
 
     pcrel = ProblemContestRel.get_by_problem_id_in_contest(cid, pid)
