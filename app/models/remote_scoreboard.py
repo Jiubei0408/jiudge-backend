@@ -1,7 +1,8 @@
 import datetime
 
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, UnicodeText, Boolean
-from app.models.base import Base, db
+
+from app.models.base import Base
 from app.models.remote_contest import RemoteContest
 
 

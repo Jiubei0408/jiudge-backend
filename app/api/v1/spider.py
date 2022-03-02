@@ -1,13 +1,13 @@
 import base64
 
+from app.libs.enumerate import QuestStatus
 from app.libs.red_print import RedPrint
-from app.validators.spider import SpiderBaseForm, SpiderFailedForm
-from app.models.quest import Quest
-from app.models.problem import Problem
-from app.models.relationship.problem_contest import ProblemContestRel
-from app.models.contest import Contest
-from app.libs.enumerate import QuestStatus, JudgeResult
 from app.libs.tools import save_to_file
+from app.models.contest import Contest
+from app.models.problem import Problem
+from app.models.quest import Quest
+from app.models.relationship.problem_contest import ProblemContestRel
+from app.validators.spider import SpiderBaseForm, SpiderFailedForm
 
 api = RedPrint('spider')
 

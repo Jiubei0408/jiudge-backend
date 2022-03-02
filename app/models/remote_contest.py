@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean, ForeignKey
-from app.models.base import Base, db
+from sqlalchemy import Column, Integer, String, ForeignKey
+
+from app.models.base import Base
 from app.models.contest import Contest
 from app.models.oj import OJ
 

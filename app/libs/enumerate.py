@@ -54,3 +54,10 @@ class ContestRegisterType(Enum):
     Participant = 0
     Observer = 1
     Starred = 2
+
+
+class ProblemStatus(Enum):
+    NotReady = 0
+    CrawlQuestCreated = 1
+    Crawling = 2
+    Ready = 3

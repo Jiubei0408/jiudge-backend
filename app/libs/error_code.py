@@ -48,7 +48,7 @@ class NotFound(APIException):
     error_code = 1001
 
 
-class AuthFailed(APIException):
+class LoginFirst(APIException):
     code = 401
     error_code = 1005
     msg = '请先登录'

@@ -1,11 +1,10 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, or_, desc
 
 from app.models.base import Base, db
-
 from app.models.contest import Contest
 from app.models.problem import Problem
-from app.models.user import User
 from app.models.relationship.problem_contest import ProblemContestRel
+from app.models.user import User
 
 
 class Clarification(Base):

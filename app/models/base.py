@@ -1,9 +1,8 @@
-import datetime
 from contextlib import contextmanager
 
 from flask_sqlalchemy import BaseQuery
 from flask_sqlalchemy import SQLAlchemy as _SQLAlchemy
-from sqlalchemy import asc, desc
+from sqlalchemy import asc, desc, orm
 
 
 class SQLAlchemy(_SQLAlchemy):
@@ -25,26 +24,30 @@ class Base(db.Model):
     __table_args__ = {"extend_existing": True}
     fields = []
 
+    @orm.reconstructor
+    def __init__(self):
+        self._fields = self.fields
+
     def __getitem__(self, item):
         return getattr(self, item)
 
     def keys(self):
-        return self.fields
+        return self._fields
 
     def hide(self, *keys):
-        fields = self.fields.copy()
+        fields = self._fields.copy()
         for key in keys:
             if key in fields:
                 fields.remove(key)
-        self.fields = fields
+        self._fields = fields
         return self
 
     def show(self, *keys):
-        fields = self.fields.copy()
+        fields = self._fields.copy()
         for key in keys:
             if key not in fields:
                 fields.append(key)
-        self.fields = fields
+        self._fields = fields
         return self
 
     @classmethod

@@ -1,6 +1,7 @@
 import json
 
 import redis as Redis
+
 from app.config.secure import REDIS_PASSWORD, REDIS_HOST, REDIS_PORT
 from app.libs.enumerate import QuestType
 
@@ -14,6 +15,16 @@ def send_crawl_contest_info(contest_id, oj_id, oj_name, remote_contest_id):
         'oj_id': oj_id,
         'remote_contest_id': remote_contest_id
     }, QuestType.CrawlRemoteContestMeta)
+
+
+def send_crawl_problem_info(remote_problem_id, oj):
+    from app.models.problem import Problem
+    problem = Problem.get_by_oj_id_and_remote_id(oj.id, remote_problem_id)
+    send_quest(oj.name, {
+        'type': 'crawl_problem_info',
+        'problem_id': problem.id,
+        'remote_problem_id': remote_problem_id
+    }, QuestType.CrawlProblemInfo)
 
 
 def send_submit_problem(submission, problem, code, lang, account=None):

@@ -1,8 +1,8 @@
 from wtforms import StringField, IntegerField
 from wtforms.validators import DataRequired, ValidationError
 
-from app.validators.base import BaseForm, NotRequiredDateTimeRange
 from app.libs.enumerate import ContestType
+from app.validators.base import BaseForm, NotRequiredDateTimeRange
 
 
 class ContestRegisterForm(BaseForm):

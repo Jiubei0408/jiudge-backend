@@ -1,7 +1,8 @@
 import datetime
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+from apscheduler.schedulers.background import BackgroundScheduler
+
 from app.config.secure import SQLALCHEMY_DATABASE_URI
 
 jobstores = {

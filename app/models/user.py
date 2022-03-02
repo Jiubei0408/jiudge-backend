@@ -1,11 +1,11 @@
 from flask_login import UserMixin
 from sqlalchemy import Column, String, Enum
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import login_manager
-from app.libs.error_code import AuthFailed
-from app.models.base import Base
 from app.libs.enumerate import UserPermission
-from werkzeug.security import check_password_hash, generate_password_hash
+from app.libs.error_code import LoginFirst
+from app.models.base import Base
 
 
 class User(UserMixin, Base):
@@ -29,7 +29,7 @@ class User(UserMixin, Base):
     @staticmethod
     @login_manager.unauthorized_handler
     def unauthorized_handler():
-        return AuthFailed()
+        return LoginFirst()
 
     def check_password(self, raw):
         if not self.password_ or not raw:

@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Enum
 
-from app.models.base import Base, db
-from app.models.user import User
-from app.models.contest import Contest
 from app.libs.enumerate import ContestRegisterType
+from app.models.base import Base, db
+from app.models.contest import Contest
+from app.models.user import User
 
 
 class UserContestRel(Base):

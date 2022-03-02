@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean, orm
-from app.models.base import Base
+from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean
+
 from app.libs.enumerate import ContestType, ContestState
+from app.models.base import Base
 
 
 class Contest(Base):
@@ -22,16 +23,6 @@ class Contest(Base):
         from app.models.scoreboard import Scoreboard
         Scoreboard.create(contest_id=r.id)
         return r
-
-    @orm.reconstructor
-    def __init__(self):
-        self.secret = True
-
-    def show_secret(self):
-        self.secret = False
-
-    def hide_secret(self):
-        self.secret = True
 
     @property
     def require_password(self):
@@ -57,11 +48,6 @@ class Contest(Base):
     def problems(self):
         from app.models.relationship.problem_contest import ProblemContestRel
         problem_list = ProblemContestRel.get_problems_by_contest_id(self.id)
-        for problem in problem_list:
-            if self.secret:
-                problem.hide_secret()
-            else:
-                problem.show_secret()
         return problem_list
 
     def get_problem_id_in_contest(self, problem):

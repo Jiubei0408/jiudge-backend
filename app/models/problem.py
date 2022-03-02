@@ -1,5 +1,3 @@
-import json
-
 from sqlalchemy import Column, Integer, String, ForeignKey, UnicodeText, Float
 
 from app.models.base import Base
@@ -8,20 +6,8 @@ from app.models.oj import OJ
 
 class Problem(Base):
     __tablename__ = 'problem'
-    fields = ['id', 'problem_name', 'oj', 'remote_problem_id',
-              'remote_problem_url', 'problem_text', 'problem_text_url',
-              'has_problem_text_file', 'time_limit', 'space_limit',
+    fields = ['id', 'problem_name', 'time_limit', 'space_limit',
               'allowed_lang']
-
-    def __init__(self):
-        super(Problem, self).__init__()
-        self.hide_secret()
-
-    def show_secret(self):
-        self.show('id', 'oj', 'remote_problem_id', 'remote_problem_url')
-
-    def hide_secret(self):
-        self.hide('id', 'oj', 'remote_problem_id', 'remote_problem_url')
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     problem_name = Column(String(100))
@@ -50,3 +36,25 @@ class Problem(Base):
     @property
     def oj(self):
         return OJ.get_by_id(self.oj_id)
+
+    @property
+    def status(self):
+        from app.models.quest import Quest
+        from app.libs.enumerate import ProblemStatus, QuestType, QuestStatus
+        q = Quest.get_by_type_and_data_id(QuestType.CrawlProblemInfo, self.id)
+        if q is None:
+            return ProblemStatus.NotReady
+        elif q.status == QuestStatus.FINISHED:
+            return ProblemStatus.Ready
+        elif q.status == QuestStatus.INQUEUE:
+            return ProblemStatus.CrawlQuestCreated
+        elif q.status == QuestStatus.RUNNING:
+            return ProblemStatus.Crawling
+        return ProblemStatus.NotReady
+
+    @classmethod
+    def get_by_oj_id_and_remote_id(cls, oj_id, remote_id):
+        r = cls.search(oj_id=oj_id, remote_problem_id=remote_id)['data']
+        if r:
+            return r[0]
+        return Problem.create(oj_id=oj_id, remote_problem_id=remote_id)

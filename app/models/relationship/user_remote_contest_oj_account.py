@@ -2,9 +2,9 @@
 
 from sqlalchemy import Column, Integer, String, ForeignKey
 
-from app.models.base import Base, db
-from app.models.user import User
+from app.models.base import Base
 from app.models.oj import OJ
+from app.models.user import User
 
 
 class UserRemoteContestOJAccount(Base):

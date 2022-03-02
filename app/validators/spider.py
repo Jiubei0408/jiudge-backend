@@ -1,10 +1,9 @@
-import json
-
-from app.validators.base import BaseForm
 from wtforms import IntegerField, StringField
-from wtforms.validators import ValidationError, DataRequired
-from app.models.quest import Quest
+from wtforms.validators import ValidationError
+
 from app.libs.enumerate import QuestStatus
+from app.models.quest import Quest
+from app.validators.base import BaseForm
 
 
 class SpiderBaseForm(BaseForm):

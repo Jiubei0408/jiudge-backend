@@ -1,4 +1,3 @@
-import datetime
 import math
 
 from app.libs.quest_queue import *
@@ -36,7 +35,7 @@ def task_crawl_remote_scoreboard(scoreboard_id, oj_name, remote_contest_id):
         send_crawl_remote_scoreboard(scoreboard_id, oj_name, remote_contest_id)
 
 
-def get_problem_list(contest_id, username, show_secret):
+def get_contest_problems_summary(contest_id, username):
     from app.models.base import db
     from app.models.problem import Problem
     from app.models.relationship.problem_contest import ProblemContestRel
@@ -99,10 +98,6 @@ def get_problem_list(contest_id, username, show_secret):
         p.solve_cnt = solve_cnt
         p.tried_cnt = tried_cnt
         p.show('problem_id', 'solved', 'tried', 'solve_cnt', 'tried_cnt')
-        if show_secret:
-            p.show_secret()
-        else:
-            p.hide_secret()
         return p
 
     return [modify_problem(*info) for info in problem_info_list]
@@ -182,7 +177,6 @@ def get_scoreboard(contest):
             'register_type': rel.type
         }
         for problem in problems:
-            problem.hide_secret()
             pid = problem.problem_id
             cell = get_scoreboard_cell(rel.user, problem, contest)
             row[pid] = cell

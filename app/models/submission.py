@@ -1,17 +1,18 @@
 import datetime
 
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Boolean, ForeignKey, Float, Text, orm
-from app.models.base import Base
-from app.models.problem import Problem
+from sqlalchemy import Column, Integer, String, Enum, DateTime, ForeignKey, Float, Text
+
 from app.libs.enumerate import JudgeResult
+from app.models.base import Base
 from app.models.contest import Contest
+from app.models.problem import Problem
 from app.models.user import User
-from app.models.quest import Quest
 
 
 class Submission(Base):
     __tablename__ = 'submission'
-    fields = ['id', 'user', 'problem', 'remote_result', 'view_result', 'code', 'lang', 'time_used', 'memory_used', 'compile_info', 'submit_time']
+    fields = ['id', 'user', 'problem', 'remote_result', 'view_result', 'code', 'lang', 'time_used', 'memory_used',
+              'compile_info', 'submit_time']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(100), ForeignKey(User.username))
@@ -25,16 +26,6 @@ class Submission(Base):
     compile_info = Column(Text, default='')
     submit_time = Column(DateTime)
     contest_id = Column(Integer, ForeignKey(Contest.id))
-
-    @orm.reconstructor
-    def __init__(self):
-        self.secret = True
-
-    def show_secret(self):
-        self.secret = False
-
-    def hide_secret(self):
-        self.secret = True
 
     @property
     def view_result(self):
@@ -51,10 +42,6 @@ class Submission(Base):
     @property
     def problem(self):
         problem = Problem.get_by_id(self.problem_id)
-        if self.secret:
-            problem.hide_secret()
-        else:
-            problem.show_secret()
         if self.contest is not None:
             problem.problem_id = self.contest.get_problem_id_in_contest(problem)
             problem.show('problem_id')
