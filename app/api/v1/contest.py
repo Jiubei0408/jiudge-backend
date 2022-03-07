@@ -14,6 +14,7 @@ from app.services.problem import *
 from app.validators.base import *
 from app.validators.contest import *
 from app.validators.problem import *
+from app.libs.enumerate import UserPermission
 
 api = RedPrint('contest')
 
@@ -50,7 +51,9 @@ def get_contest_api(id_):
 @api.route('s', methods=['GET'])
 def get_contests_api():
     form = SearchForm().validate_for_api().data_
-    data = Contest.search(ready=True, **form)
+    if current_user.is_anonymous or current_user.permission != UserPermission.ADMIN:
+        form['ready'] = True
+    data = Contest.search(**form)
     for contest in data['data']:
         contest.registered = contest.is_registered(current_user)
         contest.show('registered')
