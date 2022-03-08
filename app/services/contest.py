@@ -3,6 +3,8 @@ import math
 from app.libs.quest_queue import *
 from app.libs.scheduler import *
 
+SCOREBOARD_CALCLATING_FLAG = 'JIUDGE:SCOREBOARD:CALCULATING'
+
 
 def create_remote_contest(contest_name, contest_type, start_time, end_time, oj, remote_contest_id, password):
     from app.models.contest import Contest
@@ -88,7 +90,7 @@ def get_contest_problems_summary(contest_id, username):
         q_solve_cnt,
         q_tried_cnt
     ).filter(Problem.id == ProblemContestRel.problem_id). \
-        filter(ProblemContestRel.contest_id == contest_id).\
+        filter(ProblemContestRel.contest_id == contest_id). \
         order_by(asc(ProblemContestRel.problem_id_in_contest)).all()
 
     def modify_problem(p, id_, solved, tried, solve_cnt, tried_cnt):
@@ -143,14 +145,73 @@ def get_scoreboard_cell(user, problem, contest):
     return data
 
 
-def get_scoreboard(contest):
+def calc_board_for_contest(contest):
+    from flask_app import app
     from flask import json
+    app.app_context().push()
+    redis.sadd(SCOREBOARD_CALCLATING_FLAG, contest.id)
+    try:
+        from app.models.relationship.problem_contest import ProblemContestRel
+        from app.models.relationship.user_contest import UserContestRel
+        from app.libs.enumerate import ContestRegisterType
+        problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
+        data = {
+            'problems': problems,
+            'scoreboard': []
+        }
+        registered = UserContestRel.get_by_contest_id(contest.id)
+        first_blood = {}
+        for rel in registered:
+            row = {
+                'solved': 0,
+                'penalty': 0,
+                'user': rel.user,
+                'register_type': rel.type
+            }
+            for problem in problems:
+                pid = problem.problem_id
+                cell = get_scoreboard_cell(rel.user, problem, contest)
+                row[pid] = cell
+                if cell['solved']:
+                    if pid not in first_blood or first_blood[pid]['solve_time'] > cell['solve_time']:
+                        first_blood[pid] = cell
+                    row['solved'] += 1
+                    row['penalty'] += cell['penalty']
+            data['scoreboard'].append(row)
+        for i, j in first_blood.items():
+            j['first_blood'] = True
+        data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
+        rank = 0
+        cnt = 1
+        penalty = 0
+        solved = 0
+        for row in data['scoreboard']:
+            if penalty != row['penalty'] or solved != row['solved']:
+                rank = cnt
+                penalty = row['penalty']
+                solved = row['solved']
+            row['rank'] = rank
+            if row['register_type'] != ContestRegisterType.Starred:
+                cnt += 1
+        now = datetime.datetime.now()
+        data['update_time'] = now
+        from app.models.scoreboard import Scoreboard
+        Scoreboard.get_by_contest_id(contest.id).modify(scoreboard_json=json.dumps(data), update_time=now)
+    finally:
+        redis.srem(SCOREBOARD_CALCLATING_FLAG, contest.id)
+
+
+def get_scoreboard(contest):
     from app.models.scoreboard import Scoreboard
     from app.config.settings import ScoreboardCacheRefreshSeconds
     from app.libs.enumerate import ContestState
+    from app.libs.myredis import redis
     board = Scoreboard.get_by_contest_id(contest.id)
     last_refresh_time = board.update_time
     seconds_passed = (datetime.datetime.now() - last_refresh_time).total_seconds()
+    current_data = json.loads(board.scoreboard_json)
+    if redis.sismember(SCOREBOARD_CALCLATING_FLAG, contest.id):
+        return current_data
     if (
             seconds_passed < ScoreboardCacheRefreshSeconds.CONTEST or
             (
@@ -158,50 +219,7 @@ def get_scoreboard(contest):
                     and last_refresh_time >= contest.end_time
             )
     ) and board.scoreboard_json != '':
-        return json.loads(board.scoreboard_json)
-    from app.models.relationship.problem_contest import ProblemContestRel
-    from app.models.relationship.user_contest import UserContestRel
-    from app.libs.enumerate import ContestRegisterType
-    problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
-    data = {
-        'problems': problems,
-        'scoreboard': []
-    }
-    registered = UserContestRel.get_by_contest_id(contest.id)
-    first_blood = {}
-    for rel in registered:
-        row = {
-            'solved': 0,
-            'penalty': 0,
-            'user': rel.user,
-            'register_type': rel.type
-        }
-        for problem in problems:
-            pid = problem.problem_id
-            cell = get_scoreboard_cell(rel.user, problem, contest)
-            row[pid] = cell
-            if cell['solved']:
-                if pid not in first_blood or first_blood[pid]['solve_time'] > cell['solve_time']:
-                    first_blood[pid] = cell
-                row['solved'] += 1
-                row['penalty'] += cell['penalty']
-        data['scoreboard'].append(row)
-    for i, j in first_blood.items():
-        j['first_blood'] = True
-    data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
-    rank = 0
-    cnt = 1
-    penalty = 0
-    solved = 0
-    for row in data['scoreboard']:
-        if penalty != row['penalty'] or solved != row['solved']:
-            rank = cnt
-            penalty = row['penalty']
-            solved = row['solved']
-        row['rank'] = rank
-        if row['register_type'] != ContestRegisterType.Starred:
-            cnt += 1
-    now = datetime.datetime.now()
-    data['update_time'] = now
-    board.modify(scoreboard_json=json.dumps(data), update_time=now)
-    return data
+        return current_data
+    from threading import Thread
+    Thread(target=calc_board_for_contest, args=(contest,)).start()
+    return current_data
