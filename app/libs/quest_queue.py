@@ -1,11 +1,8 @@
 import json
 
-import redis as Redis
-
-from app.config.secure import REDIS_PASSWORD, REDIS_HOST, REDIS_PORT
 from app.libs.enumerate import QuestType
 
-redis = Redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, password=REDIS_PASSWORD, decode_responses=True)
+from app.libs.myredis import redis
 
 
 def send_crawl_contest_info(contest_id, oj_id, oj_name, remote_contest_id):
