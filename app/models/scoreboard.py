@@ -19,6 +19,7 @@ class Scoreboard(Base):
 
     @classmethod
     def create(cls, **kwargs):
+        kwargs.setdefault('scoreboard_json', '{}')
         kwargs.setdefault('update_time', datetime.datetime.now())
         return super().create(**kwargs)
 

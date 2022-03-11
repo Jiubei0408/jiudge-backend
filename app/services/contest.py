@@ -1,4 +1,5 @@
 import math
+import time
 
 from app.libs.quest_queue import *
 from app.libs.scheduler import *
@@ -44,13 +45,13 @@ def get_contest_problems_summary(contest_id, username):
     from sqlalchemy import exists, and_, func, asc
     from app.models.relationship.user_contest import UserContestRel
     from app.models.submission import Submission
-    from app.libs.enumerate import JudgeResult
-    from app.config.settings import UnRatedJudgeResults
+    from app.models.ignorable_results import IgnorableResults
+    from app.models.acceptable_results import AcceptableResults
     q_solved = exists().where(
         and_(
             Submission.username == username,
             Submission.contest_id == contest_id,
-            Submission.result == JudgeResult.AC,
+            Submission.result.in_(AcceptableResults.all()),
             Submission.problem_id == Problem.id
         )
     )
@@ -59,12 +60,12 @@ def get_contest_problems_summary(contest_id, username):
             Submission.username == username,
             Submission.contest_id == contest_id,
             Submission.problem_id == Problem.id,
-            Submission.result.not_in(UnRatedJudgeResults)
+            Submission.result.not_in(IgnorableResults.all())
         )
     )
     q_solve_cnt = db.session.query(func.count()).filter(
         Submission.contest_id == contest_id,
-        Submission.result == JudgeResult.AC,
+        Submission.result.in_(AcceptableResults.all()),
         Submission.problem_id == Problem.id,
         exists().where(
             and_(
@@ -74,7 +75,7 @@ def get_contest_problems_summary(contest_id, username):
     ).scalar_subquery()
     q_tried_cnt = db.session.query(func.count()).filter(
         Submission.contest_id == contest_id,
-        Submission.result.not_in(UnRatedJudgeResults),
+        Submission.result.not_in(IgnorableResults.all()),
         Submission.problem_id == Problem.id,
         exists().where(
             and_(
@@ -105,43 +106,113 @@ def get_contest_problems_summary(contest_id, username):
     return [modify_problem(*info) for info in problem_info_list]
 
 
-def get_scoreboard_cell(user, problem, contest):
+def calc_scoreboard(contest, page=1, page_size=-1):
+    from app.models.relationship.problem_contest import ProblemContestRel
+    from app.libs.enumerate import ContestRegisterType
     from app.models.base import db
-    from app.models.submission import Submission
-    from app.libs.enumerate import JudgeResult
+    from app.models.user import User
+    problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
     data = {
-        'tried': 0,
-        'solved': False,
-        'solve_time': 0,
-        'penalty': 0,
-        'first_blood': False
+        'problems': problems,
+        'scoreboard': []
     }
-    first_solve = Submission.search(
-        username=user.username,
-        problem_id=problem.id,
-        contest_id=contest.id,
-        result=JudgeResult.AC,
-        order={'submit_time': 'ASC'})['data']
-    from app.config.settings import UnRatedJudgeResults
-    if first_solve:
-        data['solved'] = True
-        solve_time = first_solve[0].submit_time
-        data['solve_time'] = math.floor((solve_time - contest.start_time).total_seconds() / 60.0)
-        data['tried'] = db.session.query(Submission).filter(
-            Submission.username == user.username,
-            Submission.problem_id == problem.id,
-            Submission.contest_id == contest.id,
-            Submission.submit_time <= solve_time,
-            Submission.result.not_in(UnRatedJudgeResults)
-        ).count()
-        data['penalty'] = (data['tried'] - 1) * 20 + data['solve_time']
-    else:
-        data['tried'] = db.session.query(Submission).filter(
-            Submission.username == user.username,
-            Submission.problem_id == problem.id,
-            Submission.contest_id == contest.id,
-            Submission.result.not_in(UnRatedJudgeResults)
-        ).count()
+    start = page_size * (page - 1)
+    user_data = db.session.execute(f'''
+        select username, ac_cnt, penalty
+        from contest_statistics
+        where contest_id = {contest.id}
+        order by ac_cnt desc, penalty
+        {f'limit {start}, {page_size}' if page_size != -1 else ''};
+    ''').fetchall()
+    username_list = [row[0] for row in user_data]
+    username_list_sql = ', '.join([f'\'{username}\'' for username in username_list])
+    first_blood_data = db.session.execute(f'''
+        select problem_id, username
+        from first_blood
+        where contest_id = {contest.id}
+    ''').fetchall()
+    ac_data = db.session.execute(f'''
+        select username, problem_id, penalty
+        from penalty_for_accepted_submission
+        where contest_id = {contest.id}
+        and username in ({username_list_sql})
+    ''').fetchall()
+    ac_data = {(row[0], row[1]): row[2] for row in ac_data}
+    attempt_data = db.session.execute(f'''
+        select username, problem_id, attempt_cnt
+        from before_accept_cnt_view
+        where contest_id = {contest.id}
+        and username in ({username_list_sql})
+    ''')
+    attempt_data = {(row[0], row[1]): row[2] for row in attempt_data}
+    first_blood_dict = {}
+    for data_row in first_blood_data:
+        first_blood_dict[data_row[0]] = data_row[1]
+    first_blood = {}
+    type_data = db.session.execute(f'''
+        select username, type
+        from jiudge.user_contest_rel
+        where contest_id = {contest.id}
+        and username in ({username_list_sql})
+    ''')
+    type_data = {
+        row[0]: row[1]
+        for row in type_data
+    }
+    users = User.search_all(username=username_list)['data']
+    users = {
+        user.username: user
+        for user in users
+    }
+    for data_row in user_data:
+        username, solved, penalty = data_row
+        penalty = int(penalty)
+        user = users[username]
+        register_type = type_data[username]
+        row = {
+            'solved': solved,
+            'penalty': penalty,
+            'user': user,
+            'register_type': register_type
+        }
+        for problem in problems:
+            pid = problem.problem_id
+            cell = {
+                'tried': 0,
+                'solved': False,
+                'solve_time': 0,
+                'penalty': 0,
+                'first_blood': False
+            }
+            if (username, problem.id) in ac_data:
+                cell['solved'] = True
+                cell['solve_time'] = ac_data[(username, problem.id)]
+                cell['tried'] = 1
+                cell['penalty'] = cell['solve_time']
+            if (username, problem.id) in attempt_data:
+                cell['tried'] += attempt_data[(username, problem.id)]
+                cell['penalty'] += cell['tried'] * 20
+            row[pid] = cell
+            if problem.id in first_blood_dict and user.username == first_blood_dict[problem.id]:
+                first_blood[pid] = cell
+                cell['first_blood'] = True
+        data['scoreboard'].append(row)
+    for i, j in first_blood.items():
+        j['first_blood'] = True
+    rank = 0
+    cnt = 1
+    penalty = 0
+    solved = 0
+    for row in data['scoreboard']:
+        if penalty != row['penalty'] or solved != row['solved']:
+            rank = cnt
+            penalty = row['penalty']
+            solved = row['solved']
+        row['rank'] = rank
+        if row['register_type'] != ContestRegisterType.Starred:
+            cnt += 1
+    now = datetime.datetime.now()
+    data['update_time'] = now
     return data
 
 
@@ -151,50 +222,8 @@ def calc_board_for_contest(contest):
     app.app_context().push()
     redis.sadd(SCOREBOARD_CALCLATING_FLAG, contest.id)
     try:
-        from app.models.relationship.problem_contest import ProblemContestRel
-        from app.models.relationship.user_contest import UserContestRel
-        from app.libs.enumerate import ContestRegisterType
-        problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
-        data = {
-            'problems': problems,
-            'scoreboard': []
-        }
-        registered = UserContestRel.get_by_contest_id(contest.id)
-        first_blood = {}
-        for rel in registered:
-            row = {
-                'solved': 0,
-                'penalty': 0,
-                'user': rel.user,
-                'register_type': rel.type
-            }
-            for problem in problems:
-                pid = problem.problem_id
-                cell = get_scoreboard_cell(rel.user, problem, contest)
-                row[pid] = cell
-                if cell['solved']:
-                    if pid not in first_blood or first_blood[pid]['solve_time'] > cell['solve_time']:
-                        first_blood[pid] = cell
-                    row['solved'] += 1
-                    row['penalty'] += cell['penalty']
-            data['scoreboard'].append(row)
-        for i, j in first_blood.items():
-            j['first_blood'] = True
-        data['scoreboard'].sort(key=lambda x: (-x['solved'], x['penalty']))
-        rank = 0
-        cnt = 1
-        penalty = 0
-        solved = 0
-        for row in data['scoreboard']:
-            if penalty != row['penalty'] or solved != row['solved']:
-                rank = cnt
-                penalty = row['penalty']
-                solved = row['solved']
-            row['rank'] = rank
-            if row['register_type'] != ContestRegisterType.Starred:
-                cnt += 1
+        data = calc_scoreboard(contest)
         now = datetime.datetime.now()
-        data['update_time'] = now
         from app.models.scoreboard import Scoreboard
         Scoreboard.get_by_contest_id(contest.id).modify(scoreboard_json=json.dumps(data), update_time=now)
     finally:
@@ -207,9 +236,13 @@ def get_scoreboard(contest):
     from app.libs.enumerate import ContestState
     from app.libs.myredis import redis
     board = Scoreboard.get_by_contest_id(contest.id)
-    last_refresh_time = board.update_time
-    seconds_passed = (datetime.datetime.now() - last_refresh_time).total_seconds()
     current_data = json.loads(board.scoreboard_json)
+    last_refresh_time = board.update_time
+    if last_refresh_time is None:
+        from threading import Thread
+        Thread(target=calc_board_for_contest, args=(contest,)).start()
+        return current_data
+    seconds_passed = (datetime.datetime.now() - last_refresh_time).total_seconds()
     if redis.sismember(SCOREBOARD_CALCLATING_FLAG, contest.id):
         return current_data
     if (

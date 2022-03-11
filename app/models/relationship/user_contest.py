@@ -20,6 +20,12 @@ class UserContestRel(Base):
             filter(UserContestRel.contest_id == contest_id).all()
 
     @staticmethod
+    def get_by_username_and_contest_id(username, contest_id):
+        return db.session.query(UserContestRel). \
+            filter(UserContestRel.username == username). \
+            filter(UserContestRel.contest_id == contest_id).one()
+
+    @staticmethod
     def delete_contest(contest_id):
         db.session.query(UserContestRel). \
             filter(UserContestRel.contest_id == contest_id). \

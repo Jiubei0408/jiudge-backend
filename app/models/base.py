@@ -71,12 +71,11 @@ class Base(db.Model):
     def modify(self, **kwargs):
         with db.auto_commit():
             for key, value in kwargs.items():
-                if value is not None:
-                    if hasattr(self, key):
-                        try:
-                            setattr(self, key, value)
-                        except:
-                            pass
+                if hasattr(self, key):
+                    try:
+                        setattr(self, key, value)
+                    except:
+                        pass
 
     def delete(self):
         with db.auto_commit():
@@ -94,6 +93,8 @@ class Base(db.Model):
                         val = value.replace('\\', '\\\\')
                         val = val.replace('%', '\\%')
                         res = res.filter(getattr(cls, key).like('%' + val + '%'))
+                    elif isinstance(value, list):
+                        res = res.filter(getattr(cls, key).in_(value))
                     else:
                         res = res.filter(getattr(cls, key) == value)
         if kwargs.get('order'):

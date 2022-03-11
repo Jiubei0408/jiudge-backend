@@ -197,7 +197,7 @@ def delete_scoreboard_cache_api(id_):
         return NotFound(msg='找不到该比赛')
     from app.models.scoreboard import Scoreboard
     board = Scoreboard.get_by_contest_id(contest.id)
-    board.modify(scoreboard_json='{}')
+    board.modify(scoreboard_json='{}', update_time=None)
     return Success()
 
 

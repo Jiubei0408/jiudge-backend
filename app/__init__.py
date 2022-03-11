@@ -19,7 +19,8 @@ def register_plugin(flask_app):
     db.init_app(flask_app)
 
     # 初始化数据库
-    from app.models import contest, oj, problem, quest, remote_contest, remote_scoreboard, scoreboard, submission, user
+    from app.models import acceptable_results, clarification, contest, ignorable_results, oj, problem, quest, \
+        remote_contest, remote_scoreboard, scoreboard, submission, user
     from app.models.relationship import problem_contest, user_contest, user_remote_contest_account, \
         user_remote_contest_oj_account
     with flask_app.app_context():
