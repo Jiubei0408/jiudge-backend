@@ -1,10 +1,28 @@
-import math
-import time
-
 from app.libs.quest_queue import *
 from app.libs.scheduler import *
 
 SCOREBOARD_CALCLATING_FLAG = 'JIUDGE:SCOREBOARD:CALCULATING'
+
+
+def export_contest_scoreboard(contest, io):
+    from app.models.base import db
+    import xlsxwriter
+    export_columns = ['学号', '姓名', '过题数', '罚时']
+    if contest.end_time is None:
+        export_columns.remove('罚时')
+    data = db.session.execute(f'''
+        select stat.username, nickname, ac_cnt, penalty
+        from contest_statistics stat, user
+        where stat.username = user.username
+        and contest_id = {contest.id}
+        order by ac_cnt desc, penalty
+    ''').fetchall()
+    workbook = xlsxwriter.Workbook(io)
+    table = workbook.add_worksheet(contest.contest_name)
+    table.write_row(0, 0, export_columns)
+    for row, data_row in enumerate(data, 1):
+        table.write_row(row, 0, data_row[:len(export_columns)])
+    workbook.close()
 
 
 def create_remote_contest(contest_name, contest_type, start_time, end_time, oj, remote_contest_id, password):

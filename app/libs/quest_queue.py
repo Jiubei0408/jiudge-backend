@@ -1,7 +1,6 @@
 import json
 
 from app.libs.enumerate import QuestType
-
 from app.libs.myredis import redis
 
 

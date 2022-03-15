@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Enum
 
-from app.models.base import Base
 from app.libs.enumerate import JudgeResult
+from app.models.base import Base
 
 
 class AcceptableResults(Base):

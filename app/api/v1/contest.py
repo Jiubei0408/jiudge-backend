@@ -1,7 +1,13 @@
+import mimetypes
+from io import BytesIO
+from urllib.parse import quote
+
+from flask import make_response
 from flask_login import current_user, login_required
 
 from app.libs.auth import admin_only
 from app.libs.enumerate import ContestState
+from app.libs.enumerate import UserPermission
 from app.libs.error_code import *
 from app.libs.red_print import RedPrint
 from app.libs.tools import get_file_response
@@ -14,7 +20,6 @@ from app.services.problem import *
 from app.validators.base import *
 from app.validators.contest import *
 from app.validators.problem import *
-from app.libs.enumerate import UserPermission
 
 api = RedPrint('contest')
 
@@ -187,6 +192,24 @@ def get_status_api(cid):
         query['username'] = current_user.username
     search_result = Submission.search(**query, order={'id': 'desc'}, enable_fuzzy={'username'})
     return Success(data=search_result)
+
+
+@api.route('/<int:id_>/export_scoreboard', methods=['GET', 'POST'])
+@admin_only
+def export_scoreboard_api(id_):
+    contest = Contest.get_by_id(id_)
+    if contest is None:
+        return NotFound(msg='找不到该比赛')
+    io = BytesIO()
+    export_contest_scoreboard(contest, io)
+    filename = quote("{}_{}.xlsx".format(contest.contest_name, datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+    file = make_response(io.getvalue())
+    io.close()
+    mime_type = mimetypes.guess_type('%s.xlsx' % filename)[0]
+    file.headers['Content-Type'] = mime_type
+    file.headers["Cache-Control"] = "no-cache"
+    file.headers['Content-Disposition'] = "attachment; filename*=utf-8''{}".format(filename)
+    return file
 
 
 @api.route('/<int:id_>/scoreboard', methods=['DELETE'])
