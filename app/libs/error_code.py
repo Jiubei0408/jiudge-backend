@@ -10,6 +10,7 @@ class Success(APIException):
 class CreateSuccess(APIException):
     code = 201
     error_code = 0
+    msg = '创建成功'
 
 
 class DeleteSuccess(Success):
