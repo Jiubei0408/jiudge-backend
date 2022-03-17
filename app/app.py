@@ -9,6 +9,8 @@ from app.libs.error_code import ServerError
 
 class JSONEncoder(_JSONEncoder):
     def default(self, o):
+        if isinstance(o, Enum):
+            return o.name
         if hasattr(o, 'keys') and hasattr(o, '__getitem__'):
             return dict(o)
         if isinstance(o, Enum):
