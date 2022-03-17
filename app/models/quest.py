@@ -14,10 +14,3 @@ class Quest(Base):
     message = Column(Text, default='')
     type = Column(Enum(QuestType), nullable=False)
     relation_data_id = Column(Integer)
-
-    @classmethod
-    def get_by_type_and_data_id(cls, type_, data_id):
-        r = cls.search(type=type_, relation_data_id=data_id)['data']
-        if r:
-            return r[0]
-        return None

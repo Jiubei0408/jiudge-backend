@@ -41,14 +41,11 @@ class Problem(Base):
     def status(self):
         from app.models.quest import Quest
         from app.libs.enumerate import ProblemStatus, QuestType, QuestStatus
-        q = Quest.get_by_type_and_data_id(QuestType.CrawlProblemInfo, self.id)
-        if q is None:
-            return ProblemStatus.NotReady
-        elif q.status == QuestStatus.FINISHED:
-            return ProblemStatus.Ready
-        elif q.status == QuestStatus.INQUEUE:
+        if Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.INQUEUE):
             return ProblemStatus.CrawlQuestCreated
-        elif q.status == QuestStatus.RUNNING:
+        elif Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.FINISHED):
+            return ProblemStatus.Ready
+        elif Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.RUNNING):
             return ProblemStatus.Crawling
         return ProblemStatus.NotReady
 

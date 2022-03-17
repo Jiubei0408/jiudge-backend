@@ -125,3 +125,19 @@ class Base(db.Model):
     def search_all(cls, **kwargs):
         kwargs['page_size'] = -1
         return cls.search(**kwargs)
+
+    @classmethod
+    def count(cls, **kwargs):
+        res = cls.query
+        for key, value in kwargs.items():
+            if value is not None:
+                if hasattr(cls, key):
+                    if isinstance(value, list):
+                        res = res.filter(getattr(cls, key).in_(value))
+                    else:
+                        res = res.filter(getattr(cls, key) == value)
+        return res.count()
+
+    @classmethod
+    def has(cls, **kwargs):
+        return cls.count(**kwargs) > 0
