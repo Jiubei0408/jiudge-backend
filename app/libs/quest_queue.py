@@ -10,7 +10,7 @@ def send_crawl_contest_info(contest_id, oj_id, oj_name, remote_contest_id):
         'contest_id': contest_id,
         'oj_id': oj_id,
         'remote_contest_id': remote_contest_id
-    }, QuestType.CrawlRemoteContestMeta)
+    }, QuestType.CrawlRemoteContestMeta, contest_id)
 
 
 def send_crawl_problem_info(remote_problem_id, oj):
@@ -20,7 +20,7 @@ def send_crawl_problem_info(remote_problem_id, oj):
         'type': 'crawl_problem_info',
         'problem_id': problem.id,
         'remote_problem_id': remote_problem_id
-    }, QuestType.CrawlProblemInfo)
+    }, QuestType.CrawlProblemInfo, problem.id)
 
 
 def send_submit_problem(submission, problem, code, lang, account=None):
