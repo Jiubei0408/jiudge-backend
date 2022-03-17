@@ -54,6 +54,19 @@ class Contest(Base):
         from app.models.relationship.problem_contest import ProblemContestRel
         return ProblemContestRel.search(problem_id=problem.id, contest_id=self.id)['data'][0].problem_id_in_contest
 
+    def get_max_problem_id(self):
+        from app.models.relationship.problem_contest import ProblemContestRel
+        rows = ProblemContestRel.search_all(contest_id=self.id)['data']
+        if len(rows) == 0:
+            return ''
+        return max([i.problem_id_in_contest for i in rows])
+
+    def add_problem(self, problem):
+        from app.models.relationship.problem_contest import ProblemContestRel
+        from app.libs.tools import next_problem_id
+        id_in_contest = next_problem_id(self.get_max_problem_id())
+        ProblemContestRel.create(problem_id=problem.id, contest_id=self.id, problem_id_in_contest=id_in_contest)
+
     def is_admin(self, user):
         from app.libs.enumerate import UserPermission
         # todo: add permission to someone

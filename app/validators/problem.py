@@ -1,5 +1,5 @@
 from wtforms import StringField, IntegerField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, ValidationError
 
 from app.validators.base import BaseForm
 
@@ -17,6 +17,20 @@ class SearchSubmissionForm(BaseForm):
     page_size = IntegerField()
 
 
-class CrawlProblemInfoForm(BaseForm):
+class ProblemForm(BaseForm):
     oj_id = IntegerField(validators=[DataRequired('oj_id不能为空')])
     remote_problem_id = StringField(validators=[DataRequired('原题目id不能为空')])
+
+    def validate_oj_id(self, value):
+        from app.models.oj import OJ
+        oj = OJ.get_by_id(self.oj_id.data)
+        if oj is None or oj.status != 1:
+            raise ValidationError('该oj不可用')
+
+
+class CrawlProblemInfoForm(ProblemForm):
+    pass
+
+
+class AddProblemForm(ProblemForm):
+    pass

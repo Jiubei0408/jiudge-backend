@@ -1,3 +1,4 @@
+import functools
 import mimetypes
 from io import BytesIO
 from urllib.parse import quote
@@ -22,6 +23,18 @@ from app.validators.contest import *
 from app.validators.problem import *
 
 api = RedPrint('contest')
+
+
+def validate_contest(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        id_ = kwargs.pop('id_')
+        contest = Contest.get_by_id(id_)
+        if contest is None:
+            return NotFound(msg='找不到该比赛')
+        return func(*args, **kwargs, contest=contest)
+
+    return wrapper
 
 
 @api.route('/<int:id_>/register', methods=['POST'])
@@ -227,7 +240,28 @@ def delete_scoreboard_cache_api(id_):
 @api.route('/create', methods=['POST'])
 @admin_only
 def create_contest_api():
-    return NotAchieved()
+    form = CreateContestForm().validate_for_api().data_
+    Contest.create(**form)
+    return CreateSuccess()
+
+
+@api.route('/admin/<int:id_>', methods=['GET'])
+@validate_contest
+@admin_only
+def get_contest_admin_api(contest):
+    contest.show('password')
+    return Success(data=contest)
+
+
+@api.route('/<int:id_>/modify', methods=['POST'])
+@validate_contest
+@admin_only
+def modify_contest_api(contest):
+    form = ModifyContestForm().validate_for_api().data_
+    if form['ready'] is None:
+        form['ready'] = contest.ready
+    contest.modify(**form)
+    return Success('修改成功')
 
 
 @api.route('/create_remote_contest', methods=['POST'])
@@ -263,14 +297,29 @@ def delete_contest_api(id_):
     return DeleteSuccess(msg='删除成功')
 
 
-@api.route('/<int:id_>/admin/problem_status')
+@api.route('/<int:id_>/problem_status')
 def get_problem_status_api(id_):
     contest = Contest.get_by_id(id_)
     if contest is None:
         return NotFound(msg='找不到该比赛')
     problems = contest.problems
     for problem in problems:
+        problem.show('oj')
+        problem.show('remote_problem_id')
         problem.show('status')
     return SearchSuccess(data={
         'problems': problems
     })
+
+
+@api.route('/<int:id_>/add_problem', methods=['POST'])
+@validate_contest
+@admin_only
+def add_problem_api(contest):
+    from app.models.problem import Problem
+    form = AddProblemForm().validate_for_api().data_
+    problem = Problem.get_by_oj_id_and_remote_id(form['oj_id'], form['remote_problem_id'])
+    if problem in contest.problems:
+        return ParameterException('题目已经在比赛中了')
+    contest.add_problem(problem)
+    return CreateSuccess('题目已添加')
