@@ -266,7 +266,7 @@ def get_scoreboard(contest):
     if (
             seconds_passed < ScoreboardCacheRefreshSeconds.CONTEST or
             (
-                    contest.state != ContestState.RUNNING
+                    contest.state == ContestState.ENDED
                     and last_refresh_time >= contest.end_time
             )
     ) and board.scoreboard_json != '':
