@@ -71,6 +71,7 @@ def get_contests_api():
     form = SearchForm().validate_for_api().data_
     if current_user.is_anonymous or current_user.permission != UserPermission.ADMIN:
         form['ready'] = True
+    form['order'] = {'priority': 'desc', 'id': 'desc'}
     data = Contest.search(**form)
     for contest in data['data']:
         contest.registered = contest.is_registered(current_user)
@@ -260,6 +261,8 @@ def modify_contest_api(contest):
     form = ModifyContestForm().validate_for_api().data_
     if form['ready'] is None:
         form['ready'] = contest.ready
+    if form['priority'] is None:
+        form['priority'] = contest.priority
     contest.modify(**form)
     return Success('修改成功')
 

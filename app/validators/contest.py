@@ -30,6 +30,7 @@ class ModifyContestForm(NotRequiredDateTimeRange):
     contest_type = StringField()
     password = StringField()
     ready = IntegerField()
+    priority = IntegerField()
 
     def validate_contest_type(self, value):
         if self.contest_type.data is None:

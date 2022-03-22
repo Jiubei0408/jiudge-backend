@@ -7,7 +7,8 @@ from app.models.base import Base
 class Contest(Base):
     __tablename__ = 'contest'
 
-    fields = ['id', 'contest_name', 'contest_type', 'start_time', 'end_time', 'state', 'ready', 'require_password']
+    fields = ['id', 'contest_name', 'contest_type', 'start_time', 'end_time',
+              'state', 'ready', 'require_password', 'priority']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     contest_name = Column(String(200), nullable=False)
@@ -16,6 +17,7 @@ class Contest(Base):
     end_time = Column(DateTime)
     ready = Column(Boolean, nullable=False, default=False)
     password = Column(String(100))
+    priority = Column(Integer, default=0, nullable=False)
 
     @classmethod
     def create(cls, **kwargs):
