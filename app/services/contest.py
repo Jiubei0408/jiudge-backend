@@ -227,7 +227,7 @@ def calc_scoreboard(contest, page=1, page_size=-1):
             penalty = row['penalty']
             solved = row['solved']
         row['rank'] = rank
-        if row['register_type'] != ContestRegisterType.Starred:
+        if row['register_type'] != ContestRegisterType.Starred.name:
             cnt += 1
     now = datetime.datetime.now()
     data['update_time'] = now
