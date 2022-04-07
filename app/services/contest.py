@@ -10,13 +10,13 @@ def export_contest_scoreboard(contest, io):
     export_columns = ['学号', '姓名', '过题数', '罚时']
     if contest.end_time is None:
         export_columns.remove('罚时')
-    data = db.session.execute(f'''
+    data = db.session.execute('''
         select stat.username, nickname, ac_cnt, penalty
         from contest_statistics stat, user
         where stat.username = user.username
-        and contest_id = {contest.id}
+        and contest_id = :contest_id
         order by ac_cnt desc, penalty
-    ''').fetchall()
+    ''', {'contest_id': contest.id}).fetchall()
     workbook = xlsxwriter.Workbook(io)
     table = workbook.add_worksheet(contest.contest_name)
     table.write_row(0, 0, export_columns)
@@ -143,36 +143,44 @@ def calc_scoreboard(contest, page=1, page_size=-1):
         {f'limit {start}, {page_size}' if page_size != -1 else ''};
     ''').fetchall()
     username_list = [row[0] for row in user_data]
-    username_list_sql = ', '.join([f'\'{username}\'' for username in username_list])
-    first_blood_data = db.session.execute(f'''
+    first_blood_data = db.session.execute('''
         select problem_id, username
         from first_blood
-        where contest_id = {contest.id}
-    ''').fetchall()
-    ac_data = db.session.execute(f'''
+        where contest_id = :contest_id
+    ''', {'contest_id': contest.id}).fetchall()
+    ac_data = db.session.execute('''
         select username, problem_id, penalty
         from penalty_for_accepted_submission
-        where contest_id = {contest.id}
-        and username in ({username_list_sql})
-    ''').fetchall()
+        where contest_id = :contest_id
+        and username in :username_list
+    ''', {
+        'contest_id': contest.id,
+        'username_list': username_list
+    }).fetchall()
     ac_data = {(row[0], row[1]): row[2] for row in ac_data}
-    attempt_data = db.session.execute(f'''
+    attempt_data = db.session.execute('''
         select username, problem_id, attempt_cnt
         from before_accept_cnt_view
-        where contest_id = {contest.id}
-        and username in ({username_list_sql})
-    ''')
+        where contest_id = :contest_id
+        and username in :username_list
+    ''', {
+        'contest_id': contest.id,
+        'username_list': username_list
+    }).fetchall()
     attempt_data = {(row[0], row[1]): row[2] for row in attempt_data}
     first_blood_dict = {}
     for data_row in first_blood_data:
         first_blood_dict[data_row[0]] = data_row[1]
     first_blood = {}
-    type_data = db.session.execute(f'''
+    type_data = db.session.execute('''
         select username, type
         from jiudge.user_contest_rel
-        where contest_id = {contest.id}
-        and username in ({username_list_sql})
-    ''')
+        where contest_id = :contest_id
+        and username in :username_list
+    ''', {
+        'contest_id': contest.id,
+        'username_list': username_list
+    }).fetchall()
     type_data = {
         row[0]: row[1]
         for row in type_data
