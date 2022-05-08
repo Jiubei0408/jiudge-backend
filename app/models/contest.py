@@ -8,7 +8,7 @@ class Contest(Base):
     __tablename__ = 'contest'
 
     fields = ['id', 'contest_name', 'contest_type', 'start_time', 'end_time',
-              'state', 'ready', 'require_password', 'priority']
+              'state', 'ready', 'require_password', 'priority', 'notice']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     contest_name = Column(String(200), nullable=False)
@@ -18,6 +18,7 @@ class Contest(Base):
     ready = Column(Boolean, nullable=False, default=False)
     password = Column(String(100))
     priority = Column(Integer, default=0, nullable=False)
+    notice = Column(String(1000), default='')
 
     @classmethod
     def create(cls, **kwargs):
