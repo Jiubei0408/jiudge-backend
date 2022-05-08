@@ -9,7 +9,7 @@ from app.models.user import User
 
 class Clarification(Base):
     __tablename__ = 'clarification'
-    fields = ['id', 'who', 'to', 'problem_id_in_contest', 'content']
+    fields = ['id', 'who', 'to', 'problem_id_in_contest', 'content', 'unread']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     _who = Column('who', String(100), ForeignKey(User.username), nullable=False)
@@ -40,6 +40,19 @@ class Clarification(Base):
             return None
         return ProblemContestRel. \
             get_by_problem_id_and_contest_id(self.contest_id, self.problem_id).problem_id_in_contest
+
+    @property
+    def unread(self):
+        from app.models.relationship.user_clar_read import UserClarRead
+        from flask_login import current_user
+        if current_user.is_anonymous:
+            return False
+        if current_user.username == self.who.username:
+            return False
+        if self.to is None:
+            return UserClarRead.get_by_username_and_clar_id(current_user.username, self.id) is None
+        else:
+            return UserClarRead.get_by_username_and_clar_id(self.to.username, self.id) is None
 
     @classmethod
     def search_by_contest_id(cls, contest_id, page=1, page_size=20):

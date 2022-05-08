@@ -62,3 +62,9 @@ class CreateRemoteContestForm(NotRequiredDateTimeRange):
         super().validate_start_time(value)
         if self.start_time.data is None:
             raise ValidationError('Start time required')
+
+
+class NewClarificationForm(BaseForm):
+    to = StringField()
+    problem_id = StringField()
+    content = StringField(validators=[DataRequired(message='content cannot be empty')])

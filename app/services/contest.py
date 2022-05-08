@@ -1,11 +1,11 @@
 from app.libs.quest_queue import *
 from app.libs.scheduler import *
+from app.models.base import db
 
 SCOREBOARD_CALCLATING_FLAG = 'JIUDGE:SCOREBOARD:CALCULATING'
 
 
 def export_contest_scoreboard(contest, io):
-    from app.models.base import db
     import xlsxwriter
     export_columns = ['学号', '姓名', '过题数', '罚时']
     if contest.end_time is None:
@@ -57,7 +57,6 @@ def task_crawl_remote_scoreboard(scoreboard_id, oj_name, remote_contest_id):
 
 
 def get_contest_problems_summary(contest_id, username):
-    from app.models.base import db
     from app.models.problem import Problem
     from app.models.relationship.problem_contest import ProblemContestRel
     from sqlalchemy import exists, and_, func, asc
@@ -127,7 +126,6 @@ def get_contest_problems_summary(contest_id, username):
 def calc_scoreboard(contest, page=1, page_size=-1):
     from app.models.relationship.problem_contest import ProblemContestRel
     from app.libs.enumerate import ContestRegisterType
-    from app.models.base import db
     from app.models.user import User
     problems = ProblemContestRel.get_problems_by_contest_id(contest.id)
     data = {
@@ -282,3 +280,29 @@ def get_scoreboard(contest):
     from threading import Thread
     Thread(target=calc_board_for_contest, args=(contest,)).start()
     return current_data
+
+
+def get_clarification_unread_count(user, contest):
+    sql = '''
+        select count(*)
+        from clarification clar
+        where not exists(
+                select *
+                from user_clar_read r
+                where clar.id = r.clar_id
+                  and r.username = :username
+            )
+        and contest_id = :contest_id
+        and who != :username
+        and (`to` = :username or (:username != 'jury' and `to` is null))
+    '''
+    res = db.session.execute(sql, {
+        'username': user.username,
+        'contest_id': contest.id
+    }).scalar()
+    if contest.is_admin(user):
+        res += db.session.execute(sql, {
+            'username': 'jury',
+            'contest_id': contest.id
+        }).scalar()
+    return res

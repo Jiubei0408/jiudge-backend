@@ -22,7 +22,7 @@ def register_plugin(flask_app):
     from app.models import acceptable_results, clarification, contest, ignorable_results, oj, problem, quest, \
         remote_contest, remote_scoreboard, scoreboard, submission, user
     from app.models.relationship import problem_contest, user_contest, user_remote_contest_account, \
-        user_remote_contest_oj_account
+        user_remote_contest_oj_account, user_clar_read
     with flask_app.app_context():
         db.create_all()
 

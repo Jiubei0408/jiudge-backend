@@ -61,8 +61,10 @@ def get_contest_api(id_):
     if contest is None:
         return NotFound(msg='找不到该比赛')
     contest.registered = contest.is_registered(current_user)
+    contest.admin = contest.is_admin(current_user)
     contest.show('registered')
     contest.show('problems')
+    contest.show('admin')
     return Success(data=contest)
 
 
@@ -111,6 +113,13 @@ def get_scoreboard_api(id_):
     return get_scoreboard(contest)
 
 
+@api.route('/<int:id_>/contestants', methods=['GET'])
+@validate_contest
+def get_contestants_api(contest):
+    from app.models.relationship.user_contest import UserContestRel
+    return Success(data=UserContestRel.search_all(contest_id=contest.id)['data'])
+
+
 @api.route('/<int:id_>/clarifications', methods=['GET'])
 def get_clarifications_api(id_):
     form = SearchForm().validate_for_api().data_
@@ -126,6 +135,49 @@ def get_clarifications_api(id_):
         page=form['page'],
         page_size=form['page_size']
     ))
+
+
+@api.route('/<int:id_>/new_clar', methods=['POST'])
+@validate_contest
+@login_required
+def new_clar_api(contest):
+    from app.models.user import User
+    form = NewClarificationForm().validate_for_api().data_
+    if form['to'] != 'jury' and not contest.is_admin(current_user):
+        return Forbidden(msg='你没有向他发消息的权限')
+    if form['to'] == '':
+        form['to'] = None
+    else:
+        to = User.get_by_id(form['to'])
+        if to is None:
+            return NotFound(msg='找不到该用户')
+        form['to'] = to
+    if form['problem_id'] == '':
+        form['problem_id'] = None
+    Clarification.create(who=current_user, contest_id=contest.id, **form)
+    return CreateSuccess(msg='已发送')
+
+
+@api.route('/<int:id_>/clar_count', methods=['GET'])
+@validate_contest
+@login_required
+def get_clar_count_api(contest):
+    return Success(data=get_clarification_unread_count(current_user, contest))
+
+
+@api.route('/read_clar/<int:id_>', methods=['POST'])
+@login_required
+def read_clar_api(id_):
+    from app.models.relationship.user_clar_read import UserClarRead
+    clar = Clarification.get_by_id(id_)
+    contest = Contest.get_by_id(clar.contest_id)
+    if clar.to is None:
+        UserClarRead.create(username=current_user.username, clar_id=id_)
+    elif contest.is_admin(current_user):
+        UserClarRead.create(username=clar.to.username, clar_id=id_)
+    else:
+        return Forbidden(msg='您不是本场比赛的管理员')
+    return Success()
 
 
 @api.route('/<int:cid>/problem_statement/<string:pid>', methods=['GET'])

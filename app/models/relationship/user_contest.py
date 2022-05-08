@@ -8,11 +8,16 @@ from app.models.user import User
 
 class UserContestRel(Base):
     __tablename__ = 'user_contest_rel'
+    fields = ['user', 'type']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(100), ForeignKey(User.username))
     contest_id = Column(Integer, ForeignKey(Contest.id))
     type = Column(Enum(ContestRegisterType), default=ContestRegisterType.Participant)
+
+    @property
+    def user(self):
+        return User.get_by_id(self.username)
 
     @staticmethod
     def get_by_contest_id(contest_id):
