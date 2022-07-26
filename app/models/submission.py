@@ -25,6 +25,7 @@ class Submission(Base):
     memory_used = Column(Float, default=0)  # 单位kb
     compile_info = Column(Text, default='')
     submit_time = Column(DateTime)
+    judge_time = Column(DateTime)
     contest_id = Column(Integer, ForeignKey(Contest.id))
 
     @property

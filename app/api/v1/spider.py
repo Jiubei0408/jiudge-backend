@@ -1,4 +1,5 @@
 import base64
+import datetime
 
 from app.libs.enumerate import QuestStatus
 from app.libs.red_print import RedPrint
@@ -89,6 +90,7 @@ def update_judge_result_api(sid):
     """
     form = SpiderBaseForm().validate_for_api().data_
     data = form['data']
+    data.setdefault('judge_time', datetime.datetime.now())
     from app.models.submission import Submission
     submission = Submission.get_by_id(sid)
     submission.modify(**data)
