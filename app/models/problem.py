@@ -6,7 +6,7 @@ from app.models.oj import OJ
 
 class Problem(Base):
     __tablename__ = 'problem'
-    fields = ['id', 'problem_name', 'time_limit', 'space_limit',
+    fields = ['id', 'oj', 'problem_name', 'time_limit', 'space_limit',
               'allowed_lang']
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -40,12 +40,20 @@ class Problem(Base):
     @property
     def status(self):
         from app.models.quest import Quest
+        from app.models.base import db, desc
         from app.libs.enumerate import ProblemStatus, QuestType, QuestStatus
-        if Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.INQUEUE):
+        quest = db.session.query(Quest). \
+            filter(Quest.relation_data_id == self.id). \
+            filter(Quest.type == QuestType.CrawlProblemInfo). \
+            order_by(desc(Quest.time_stamp)).first()
+        if quest is None:
+            return ProblemStatus.NotReady
+
+        if quest.status == QuestStatus.INQUEUE:
             return ProblemStatus.CrawlQuestCreated
-        elif Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.FINISHED):
+        elif quest.status == QuestStatus.FINISHED:
             return ProblemStatus.Ready
-        elif Quest.has(type=QuestType.CrawlProblemInfo, relation_data_id=self.id, status=QuestStatus.RUNNING):
+        elif quest.status == QuestStatus.RUNNING:
             return ProblemStatus.Crawling
         return ProblemStatus.NotReady
 
