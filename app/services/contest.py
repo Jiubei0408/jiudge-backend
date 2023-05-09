@@ -262,20 +262,23 @@ def get_scoreboard(contest):
     board = Scoreboard.get_by_contest_id(contest.id)
     current_data = json.loads(board.scoreboard_json)
     last_refresh_time = board.update_time
+    if redis.sismember(SCOREBOARD_CALCLATING_FLAG, contest.id):
+        return current_data
     if last_refresh_time is None:
         from threading import Thread
         Thread(target=calc_board_for_contest, args=(contest,)).start()
         return current_data
     seconds_passed = (datetime.datetime.now() - last_refresh_time).total_seconds()
-    if redis.sismember(SCOREBOARD_CALCLATING_FLAG, contest.id):
-        return current_data
+    last_finished_submission = contest.last_finished_submission()
     if (
             seconds_passed < ScoreboardCacheRefreshSeconds.CONTEST or
             (
                     contest.state == ContestState.ENDED
-                    and last_refresh_time >= contest.end_time
-            )
-    ) and board.scoreboard_json != '':
+                    and (
+                            last_finished_submission is None
+                            or last_finished_submission.judge_time < last_refresh_time
+                    )
+            )):
         return current_data
     from threading import Thread
     Thread(target=calc_board_for_contest, args=(contest,)).start()

@@ -86,6 +86,13 @@ class Contest(Base):
         from app.models.remote_contest import RemoteContest
         return RemoteContest.get_by_contest_id(self.id)
 
+    def last_finished_submission(self):
+        from app.models.submission import Submission
+        r = Submission.search(contest_id=self.id, order={'judge_time': 'desc'})['data']
+        if len(r) == 0 or r[0].judge_time is None:
+            return None
+        return r[0]
+
     def delete(self):
         from app.models.scoreboard import Scoreboard
         from app.models.relationship.problem_contest import ProblemContestRel
