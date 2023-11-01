@@ -3,6 +3,7 @@ from app.libs.scheduler import *
 from app.models.base import db
 
 SCOREBOARD_CALCLATING_FLAG = 'JIUDGE:SCOREBOARD:CALCULATING'
+REJUDGE_RUNNING_FLAG = 'JIUDGE:REJUDGE:RUNNING'
 
 
 def export_contest_scoreboard(contest, io):
@@ -309,3 +310,26 @@ def get_clarification_unread_count(user, contest):
             'contest_id': contest.id
         }).scalar()
     return res
+
+
+def run_rejudge(submissions):
+    import time
+    from app.libs.quest_queue import send_submit_problem
+    from flask_app import app
+    with app.app_context():
+        try:
+            print(len(submissions))
+            for submission in submissions:
+                print(submission.id)
+                time.sleep(5)
+                send_submit_problem(submission, submission.problem, submission.code,
+                                    submission.lang)
+        except Exception as e:
+            print(e)
+        finally:
+            redis.delete(REJUDGE_RUNNING_FLAG)
+
+
+def rejudge_submissions(submissions):
+    from threading import Thread
+    Thread(target=run_rejudge, args=(submissions,)).start()

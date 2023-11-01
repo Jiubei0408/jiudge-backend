@@ -260,6 +260,83 @@ def get_status_api(cid):
     return Success(data=search_result)
 
 
+@api.route('/<int:cid>/rejudges', methods=['POST'])
+@login_required
+def rejudges_api(cid):
+    """
+    按照筛选条件批量重测
+    """
+    contest = Contest.get_by_id(cid)
+    if contest is None:
+        return NotFound(f'Contest {cid} not found')
+    admin = contest.is_admin(current_user)
+    if not admin:
+        return Forbidden(msg='权限不足')
+    form = SearchSubmissionForm().validate_for_api().data_
+    form['page_size'] = -1
+    query = {
+        'contest_id': cid,
+        **{k: v for k, v in form.items() if v is not None and v != ''}
+    }
+    if 'problem_id' in query:
+        from app.models.relationship.problem_contest import ProblemContestRel
+        pcrel = ProblemContestRel.get_by_problem_id_in_contest(cid, query['problem_id'])
+        if pcrel is not None:
+            query['problem_id'] = pcrel.problem_id
+    submissions = Submission.search(**query, order={'id': 'desc'}, enable_fuzzy={'username'})['data']
+    from app.services.contest import REJUDGE_RUNNING_FLAG, rejudge_submissions
+    if redis.exists(REJUDGE_RUNNING_FLAG):
+        return Forbidden(msg='已有重测任务正在进行中')
+    redis.set(REJUDGE_RUNNING_FLAG, 1)
+    rejudge_submissions(submissions)
+    return Success('重测任务创建成功')
+
+
+@api.route('/<int:cid>/rejudge', methods=['POST'])
+@login_required
+def rejudge_api(cid):
+    """
+    重测单个提交
+    """
+    contest = Contest.get_by_id(cid)
+    if contest is None:
+        return NotFound(f'Contest {cid} not found')
+    admin = contest.is_admin(current_user)
+    if not admin:
+        return Forbidden(msg='权限不足')
+    form = BanSubmissionForm().validate_for_api().data_
+    submission = Submission.get_by_id(form['submission_id'])
+    if submission is None:
+        return NotFound(f'Submission {form["submission_id"]} not found')
+    if redis.exists(REJUDGE_RUNNING_FLAG):
+        return Forbidden(msg='已有重测任务正在进行中')
+    redis.set(REJUDGE_RUNNING_FLAG, 1)
+    submissions = [submission]
+    rejudge_submissions(submissions)
+    return Success('重测任务创建成功')
+
+
+@api.route('/<int:cid>/ban', methods=['POST'])
+@login_required
+def ban_api(cid):
+    """
+    封禁单个提交
+    """
+    contest = Contest.get_by_id(cid)
+    if contest is None:
+        return NotFound(f'Contest {cid} not found')
+    admin = contest.is_admin(current_user)
+    if not admin:
+        return Forbidden(msg='权限不足')
+    form = BanSubmissionForm().validate_for_api().data_
+    submission = Submission.get_by_id(form['submission_id'])
+    if submission is None:
+        return NotFound(f'Submission {form["submission_id"]} not found')
+    from app.libs.enumerate import JudgeResult
+    submission.modify(result=JudgeResult.BANNED, remote_result='Banned')
+    return Success('封禁成功')
+
+
 @api.route('/<int:id_>/export_scoreboard', methods=['GET', 'POST'])
 @admin_only
 def export_scoreboard_api(id_):

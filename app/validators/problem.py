@@ -17,6 +17,10 @@ class SearchSubmissionForm(BaseForm):
     page_size = IntegerField()
 
 
+class BanSubmissionForm(BaseForm):
+    submission_id = StringField()
+
+
 class ProblemForm(BaseForm):
     oj_id = IntegerField(validators=[DataRequired('oj_id不能为空')])
     remote_problem_id = StringField(validators=[DataRequired('原题目id不能为空')])

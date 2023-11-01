@@ -34,6 +34,7 @@ class JudgeResult(Enum):
     SE = auto()  # system error
     SpiderError = auto()  # spider error
     UNKNOWN = auto()
+    BANNED = auto()
 
 
 class QuestType(Enum):
