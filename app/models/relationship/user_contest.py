@@ -14,6 +14,9 @@ class UserContestRel(Base):
     username = Column(String(100), ForeignKey(User.username))
     contest_id = Column(Integer, ForeignKey(Contest.id))
     type = Column(Enum(ContestRegisterType), default=ContestRegisterType.Participant)
+    __table_args__ = (
+        db.UniqueConstraint('username', 'contest_id', name='user_cid'),
+    )
 
     @property
     def user(self):
