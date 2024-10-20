@@ -19,7 +19,7 @@ class Problem(Base):
     problem_text_file = Column(String(300), default='')
     time_limit = Column(Float, default=0)
     space_limit = Column(Float, default=0)
-    _allowed_lang = Column('allowed_lang', String(100), default='')
+    _allowed_lang = Column('allowed_lang', String(1000), default='')
 
     @property
     def has_problem_text_file(self):
